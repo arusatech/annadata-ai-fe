@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">annadata-fe</string>
+    <string name="title_activity_main">annadata-fe</string>
+    <string name="package_name">ai.annadata.app</string>
+    <string name="custom_url_scheme">ai.annadata.app</string>
+</resources>

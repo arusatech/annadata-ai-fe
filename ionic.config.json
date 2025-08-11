@@ -1,0 +1,7 @@
+{
+  "name": "annadata-fe",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}
