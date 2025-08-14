@@ -91,70 +91,66 @@ body {
     background-color: #f9f9f9;
 }
 
+/* ==========================================================================
+   MENU CONTAINER STYLES
+   ========================================================================== */
+
 .menu-container {
-    flex: 0 0 auto; /* Don't grow or shrink */
-    max-width: 800px;
-    margin: 0 auto;
-    width: 100%;
-    padding: 2px;
-    box-sizing: border-box;
-    /* Add safe area padding for camera devices */
-    /* padding-top: max(0px, env(safe-area-inset-top, 10px)); 
-    margin-top: max(0px, env(safe-area-inset-top, 10px)); */
-    padding-top: max(2px, calc(env(safe-area-inset-top, 20px) * 0.5)); 
-    margin-top: max(5px, calc(env(safe-area-inset-top, 20px) * 0.4));
+  flex: 0 0 auto; /* Don't grow or shrink */
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 2px;
+  box-sizing: border-box;
+  /* Safe area padding for camera devices */
+  padding-top: max(2px, calc(env(safe-area-inset-top, 20px) * 0.5)); 
+  margin-top: max(5px, calc(env(safe-area-inset-top, 20px) * 0.4));
 }
 
 .menu-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #f5f5f5;
-    padding: 10px 20px;
-    border-radius: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f5f5f5;
+  padding: 10px 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .menu-title {
-    font-weight: bold;
-    font-size: 18px;
+  font-weight: bold;
+  font-size: 18px;
+  color: #333;
+  margin: 0;
+  flex: 1;
+  text-align: left;
 }
 
 .menu-icons {
-    display: flex;
-    gap: 5px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
 }
 
-.icon {
-    cursor: pointer;
-    padding: 2px;
-    border-radius: 3px;
-    transition: background-color 0.2s;
+.menu-icon {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
-.icon:hover {
-    background-color: #e0e0e0;
+.menu-icon:hover {
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
-.show {
-    display: block;
+
+/* Language dropdown specific styles */
+.language-dropdown .menu-title {
+  /* Inherit from parent .menu-title */
+  font-weight: inherit;
+  font-size: inherit;
 }
 
-.greeting-message {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    font-size: 1.0rem;
-    color: #333;
-    width: 100%; /* Maximum width */
-    max-width: 98%; /* Nearly full width with tiny margin */
-    padding: 2px 2px; /* Added horizontal padding for text not to touch edges */
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 15px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin-left: 1px;
-    margin-right: 1px;
-}
 
 .brand-text {
     text-align: center;

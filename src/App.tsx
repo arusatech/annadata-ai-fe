@@ -16,6 +16,10 @@ import ChatService from './services/ChatService';
 import './css/style.css';
 import './css/layout.css';
 import './css/icons.min.css';
+import './css/icons.css'; // Add this
+import './css/utilities.css'; // Add this
+import './css/forms.css'; // Add this
+import './css/popups.css'; // Add this
 
 // Type definitions
 // Fix: Update the Message interface to match the components' expectations

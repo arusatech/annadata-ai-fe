@@ -1,0 +1,30 @@
+/* ==========================================================================
+   UTILITY CLASSES - UNIFIED
+   ========================================================================== */
+
+/* Display utilities */
+.show {
+  display: block !important;
+}
+
+.hide {
+  display: none !important;
+}
+
+/* Language popup specific show states */
+.language-options.show {
+  display: block;
+}
+
+.language-popup.show {
+  display: block;
+}
+
+.popup-backdrop.show {
+  display: block;
+}
+
+/* Settings popup specific show state */
+.settings-popup.show {
+  display: block;
+}

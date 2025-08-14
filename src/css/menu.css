@@ -1,0 +1,99 @@
+/* ==========================================================================
+   MENU CONTAINER STYLES
+   ========================================================================== */
+
+.menu-container {
+  flex: 0 0 auto; /* Don't grow or shrink */
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 2px;
+  box-sizing: border-box;
+  /* Enhanced safe area padding for modern devices with notches/cameras */
+  padding-top: max(2px, env(safe-area-inset-top, 12px)); /* Reduced from 10px to 8px */
+  margin-top: max(2px, env(safe-area-inset-top, 12px)); /* Reduced from 10px to 8px */
+  /* Ensure menu stays below camera/notch area */
+  position: relative;
+  z-index: 100;
+}
+
+.menu-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f5f5f5;
+  padding: 10px 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* Add additional top margin for extra safety */
+  margin-top: 3px; /* Reduced from 5px to 3px */
+}
+
+.menu-title {
+  font-weight: bold;
+  font-size: 18px;
+  color: #333;
+  margin: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.menu-icons {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.menu-icon {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.menu-icon:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Tractor icon specific positioning */
+#tractor-icon {
+  margin-left: -3px; /* Move tractor icon 3px to the left */
+}
+
+/* Language dropdown specific styles */
+.language-dropdown .menu-title {
+  /* Inherit from parent .menu-title */
+  font-weight: inherit;
+  font-size: inherit;
+}
+
+/* Responsive adjustments for different screen sizes */
+@media (max-width: 768px) {
+  .menu-container {
+    padding-top: max(13px, env(safe-area-inset-top, 23px)); /* Reduced from 15px to 13px */
+    margin-top: max(13px, env(safe-area-inset-top, 23px)); /* Reduced from 15px to 13px */
+  }
+  
+  .menu-bar {
+    margin-top: 6px; /* Reduced from 8px to 6px */
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-container {
+    padding-top: max(18px, env(safe-area-inset-top, 28px)); /* Reduced from 20px to 18px */
+    margin-top: max(18px, env(safe-area-inset-top, 28px)); /* Reduced from 20px to 18px */
+  }
+  
+  .menu-bar {
+    margin-top: 8px; /* Reduced from 10px to 8px */
+  }
+}
+
+/* For devices with large notches (iPhone X and newer) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .menu-container {
+    padding-top: max(env(safe-area-inset-top, 18px), 18px); /* Reduced from 20px to 18px */
+    margin-top: max(env(safe-area-inset-top, 18px), 18px); /* Reduced from 20px to 18px */
+  }
+}

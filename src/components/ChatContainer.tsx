@@ -3,6 +3,8 @@ import MarkdownService from '../services/MarkdownService';
 import { useTranslation } from 'react-i18next';
 import '../css/chat.css';
 import '../css/markdown.css';
+import '../css/welcome.css';
+import '../css/icons.css'; // Add this
 
 // Type definitions
 interface Message {
@@ -136,7 +138,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   };
 
   const renderWelcomeMessage = (): React.ReactElement => (
-    <div className="message bot-message">
+    <div className="welcome-message">
       <div
         className="greeting-message"
         id="greeting-message"

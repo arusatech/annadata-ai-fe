@@ -1,0 +1,59 @@
+/* ==========================================================================
+   WELCOME MESSAGE STYLES
+   ========================================================================== */
+
+/* Welcome message container - centered alignment */
+.welcome-message {
+  align-self: center;
+  text-align: center;
+  background: transparent;
+  box-shadow: none;
+  margin: 20px auto;
+  max-width: 80%;
+  border-radius: 12px;
+  padding: 0;
+}
+
+/* Greeting message content styling */
+.greeting-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 18px;
+  color: #333;
+  line-height: 1.5;
+  padding: 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #dee2e6;
+  width: 100%;
+  max-width: 98%;
+  margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .welcome-message {
+    max-width: 90%;
+    margin: 15px auto;
+  }
+  
+  .greeting-message {
+    font-size: 16px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-message {
+    max-width: 95%;
+    margin: 10px auto;
+  }
+  
+  .greeting-message {
+    font-size: 14px;
+    padding: 12px;
+  }
+}

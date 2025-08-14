@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import '../css/menu.css';
+import '../css/icons.css'; // Add this
+import '../css/utilities.css'; // Add this
 import '../css/style.css';
 import '../css/icons.min.css';
 import '../css/common.css';

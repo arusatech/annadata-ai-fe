@@ -1,0 +1,131 @@
+/* ==========================================================================
+   FORM STYLES - UNIFIED
+   ========================================================================== */
+
+/* Form groups */
+.form-group {
+  margin-bottom: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Form inputs */
+.form-group input[type="text"],
+.form-group input[type="tel"],
+.form-group input[type="email"],
+.form-group select {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+  box-shadow: none;
+  outline: none;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #000000;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-group input::placeholder {
+  color: #aab7c4;
+  opacity: 0.7;
+}
+
+/* Form actions */
+.form-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 1rem;
+}
+
+/* OTP form specific */
+.form-otp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-otp input {
+  text-align: center;
+  font-size: 1.2rem;
+  letter-spacing: 0.5rem;
+}
+
+.form-otp > * {
+  margin: 0;
+}
+
+/* Button styles */
+.button-ad {
+  background-color: #111827;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  box-sizing: border-box;
+  color: #FFFFFF;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-family: "Inter var", ui-sans-serif, system-ui, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-size: 0.8rem;
+  font-weight: 300;
+  line-height: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  text-align: center;
+  text-decoration: none;
+  transition-duration: 0.2s;
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  width: auto;
+}
+
+.button-ad:hover {
+  background-color: #374151;
+}
+
+.button-ad:focus {
+  box-shadow: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+/* Input containers */
+.country-code-input {
+  width: 40px;
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+
+.phone-input {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.username-input {
+  flex-grow: 1;
+  min-width: 0;
+  margin-left: 5px;
+}
+
+.location-input {
+  flex-grow: 1;
+  min-width: 0;
+  width: calc(100% - 30px);
+}
+
+.otp-input {
+  width: 100px !important;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
