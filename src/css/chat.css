@@ -1,0 +1,197 @@
+/* Loading animation styles */
+.chat-loading-animation {
+  position: absolute;
+  bottom: 80px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  z-index: 10;
+  pointer-events: none;
+  overflow: hidden;
+  height: 50px; /* Fixed height for the animation container */
+  width: 100%;  /* Full width of the container */
+}
+
+.loading-icon {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-image: url('../assets/img/tractor_rotate.gif');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  /* Remove the flip animation and replace with edge-to-edge movement */
+  animation: moveEdgeToEdge 30s infinite linear; /* Adjust duration as needed */
+  left: 0; /* Starting position */
+  bottom: 0; /* Align to bottom */
+}
+
+@keyframes moveEdgeToEdge {
+  0% {
+    transform: translateX(-40px) scaleX(1); /* Start off-screen to the left */
+    left: 0;
+  }
+  49.9% {
+    transform: translateX(calc(100vw - 40px)) scaleX(1); /* Move to far right edge */
+  }
+  50% {
+    transform: translateX(calc(100vw - 40px)) scaleX(-1); /* Flip direction at the right edge */
+  }
+  100% {
+    transform: translateX(-40px) scaleX(-1); /* Return to left edge while flipped */
+  }
+}
+
+/* Error message styling */
+.message.error-message,
+.message.bot-message.error-message {
+  border-left: 3px solid #e74c3c;
+  background-color: #ffffff;
+}
+
+.message.error-message .message-content,
+.message.bot-message.error-message .message-content {
+  background-color: #ffffff;
+  color: #e74c3c;
+}
+
+/* Send icon styles */
+.send-icon {
+  background: #000000;
+  color: white !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.send-icon.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.message {
+  margin: 8px 0;
+  padding: 12px 16px;
+  border-radius: 18px;
+  max-width: 70%;
+  word-wrap: break-word;
+  position: relative;
+  flex: 0 0 auto; /* Prevent messages from growing/shrinking */
+}
+
+.user-message {
+  background-color: #ececec;
+  color: rgb(34, 34, 34);
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+
+.bot-message {
+  background-color: #fcfcfc;
+  color: #000;
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+}
+
+.error-message {
+  background-color: #ffffff;
+  color: rgb(255, 29, 29);
+}
+
+.message-content {
+  margin-bottom: 4px;
+  line-height: 1.5;
+  white-space: pre-wrap; /* Preserve line breaks */
+}
+
+.message-time {
+  font-size: 11px;
+  opacity: 0.7;
+  text-align: right;
+}
+
+.user-message .message-time {
+  text-align: right;
+}
+
+.bot-message .message-time {
+  text-align: left;
+}
+
+.send-icon.sending {
+  opacity: 0.5;
+  animation: pulse 1.5s infinite;
+}
+
+.send-icon.disabled,
+.mic-icon.disabled {
+  opacity: 0.3;
+  cursor: not-allowed !important;
+}
+
+.chat-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f5f5f5;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+/* Message footer with copy button */
+.message-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  gap: 8px;
+}
+
+/* Copy button styles */
+.copy-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+  min-width: 32px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.copy-button:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.copy-button:active {
+  transform: scale(0.95);
+}
+
+/* Adjust message time positioning */
+.message-time {
+  font-size: 11px;
+  opacity: 0.7;
+  flex: 1;
+}
+
+.user-message .message-footer {
+  flex-direction: row-reverse;
+}
+
+.user-message .message-time {
+  text-align: right;
+}
+
+.bot-message .message-time {
+  text-align: left;
+}

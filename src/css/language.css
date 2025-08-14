@@ -1,0 +1,98 @@
+.language-dropdown {
+    position: relative;
+    display: inline-block;
+}
+.language-dropdown .menu-title {
+    font-weight: bold;
+    font-size: 18px;
+}
+.language-options {
+    display: none;
+    margin: 20px;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.language-options.show {
+    display: block;
+}
+
+.lang-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.lang-table th, .lang-table td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.lang-btn {
+    padding: 4px 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.language-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  display: none;
+  padding: 10px;
+  width: 90vw;
+  max-width: 500px;
+  max-height: 80vh;
+  box-sizing: border-box;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.language-popup.show {
+  display: block;
+}
+
+.language-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.language-table td {
+  padding: 8px 12px;
+  border: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.language-table td:hover {
+  background: #f5f5f5;
+}
+
+.popup-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.3);
+  z-index: 999;
+  display: none;
+}
+
+.popup-backdrop.show {
+  display: block;
+}
+.popup-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}

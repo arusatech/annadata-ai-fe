@@ -1,0 +1,558 @@
+/* CSS Reset for proper layout */
+html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevent double scrollbars */
+}
+
+#root {
+    display: flex;
+    flex-direction: column;
+}
+
+@font-face {
+    font-family: 'AnnaData-Arabic';
+    src: url('../assets/fonts/ar.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Assamese';
+    src: url('../assets/fonts/as.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Bengali';
+    src: url('../assets/fonts/bn.ttf') format('truetype');
+}
+/* @font-face {
+    font-family: 'AnnaData-English';
+    src: url('../assets/fonts/en.ttf') format('truetype');
+} */
+@font-face {
+    font-family: 'AnnaData-Gujarati';
+    src: url('../assets/fonts/gu.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Hindi';
+    src: url('../assets/fonts/hi.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Kannada';
+    src: url('../assets/fonts/kn.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Malayalam';
+    src: url('../assets/fonts/ml.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Manipuri';
+    src: url('../assets/fonts/mni.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Marathi';
+    src: url('../assets/fonts/mr.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Nepali';
+    src: url('../assets/fonts/ne.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Oriya';
+    src: url('../assets/fonts/or.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Punjabi';
+    src: url('../assets/fonts/pa.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Sinhala';
+    src: url('../assets/fonts/si.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Tamil';
+    src: url('../assets/fonts/ta.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'AnnaData-Telugu';
+    src: url('../assets/fonts/te.ttf') format('truetype');
+}
+/* @font-face {
+    font-family: 'AnnaData-NS';
+    src: url('../assets/fonts/ns.ttf') format('truetype');
+} */
+/* font-family: 'AnnaData-English', 'AnnaData-NS', 'AnnaData-Hindi', 'AnnaData-Arabic', 'AnnaData-Assamese', 'AnnaData-Bengali', 'AnnaData-Gujarati', 'AnnaData-Kannada', 'AnnaData-Malayalam', 'AnnaData-Manipuri', 'AnnaData-Marathi', 'AnnaData-Nepali', 'AnnaData-Oriya', 'AnnaData-Punjabi', 'AnnaData-Sinhala', 'AnnaData-Tamil', 'AnnaData-Telugu', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; */
+
+body {
+    font-family: 'AnnaData-Hindi', 'AnnaData-Arabic', 'AnnaData-Assamese', 'AnnaData-Bengali', 'AnnaData-Gujarati', 'AnnaData-Kannada', 'AnnaData-Malayalam', 'AnnaData-Manipuri', 'AnnaData-Marathi', 'AnnaData-Nepali', 'AnnaData-Oriya', 'AnnaData-Punjabi', 'AnnaData-Sinhala', 'AnnaData-Tamil', 'AnnaData-Telugu', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #f9f9f9;
+}
+
+.menu-container {
+    flex: 0 0 auto; /* Don't grow or shrink */
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 2px;
+    box-sizing: border-box;
+    /* Add safe area padding for camera devices */
+    /* padding-top: max(0px, env(safe-area-inset-top, 10px)); 
+    margin-top: max(0px, env(safe-area-inset-top, 10px)); */
+    padding-top: max(2px, calc(env(safe-area-inset-top, 20px) * 0.5)); 
+    margin-top: max(5px, calc(env(safe-area-inset-top, 20px) * 0.4));
+}
+
+.menu-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f5f5f5;
+    padding: 10px 20px;
+    border-radius: 5px;
+}
+
+.menu-title {
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.menu-icons {
+    display: flex;
+    gap: 5px;
+}
+
+.icon {
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.icon:hover {
+    background-color: #e0e0e0;
+}
+
+.show {
+    display: block;
+}
+
+.greeting-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 1.0rem;
+    color: #333;
+    width: 100%; /* Maximum width */
+    max-width: 98%; /* Nearly full width with tiny margin */
+    padding: 2px 2px; /* Added horizontal padding for text not to touch edges */
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-left: 1px;
+    margin-right: 1px;
+}
+
+.brand-text {
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+.chat-footer {
+    flex: 0 0 auto; /* Don't grow or shrink */
+    width: 95%;
+    max-width: 1200px;
+    margin: 0.5rem auto;
+    padding: 0.5rem;
+}
+
+.chat-input-container {
+    position: relative;
+    border-radius: 2.5rem;
+    background: white;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.input-group::-webkit-scrollbar {
+    display: none;
+}
+
+.left-icons {
+    display: flex;
+    gap: clamp(0.25rem, 1vw, 0.75rem);
+    padding-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+.right-actions {
+    position: relative;
+    width: clamp(2.5rem, 8vw, 3.5rem);
+    height: 2.5rem;
+    flex-shrink: 0;
+}
+
+.icon-mic,
+.send-icon {
+    position: absolute;
+    right: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: all 0.3s ease;
+    font-size: clamp(1rem, 1.25vw, 1.25rem);
+    padding: 0.4rem;
+    border-radius: 50%;
+}
+
+.chat-input {
+    flex: 1;
+    border: none;
+    background: white;
+    color: black;
+    padding: 0.75rem;
+    font-size: clamp(0.875rem, 1.5vw, 1rem);
+    min-height: 1.0rem;
+    padding-right: clamp(1.5rem, 8vw, 1.5rem);
+    min-width: 120px;
+    border-radius: 0.25rem;
+}
+
+.chat-input::placeholder {
+    color: #666;
+}
+
+.chat-icons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.chat-icon {
+    cursor: pointer;
+    width: clamp(15px, 3vw, 18px);
+    height: clamp(15px, 3vw, 18px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    color: #495057;
+    background: transparent;
+    font-size: clamp(14px, 2vw, 16px);
+}
+
+.chat-icon:hover {
+    background: #e9ecef;
+    color: #212529;
+}
+
+.send-icon {
+    background: #000000;
+    color: white !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.send-icon.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.icon-mic.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.message {
+    max-width: 90%;
+    width: fit-content;
+    min-width: 10px;
+    transition: all 0.3s ease;
+    padding: 10px 14px;
+    border-radius: 18px;
+    line-height: 1.4;
+    position: relative;
+    font-size: clamp(14px, 1.8vw, 16px);
+}
+
+.user-message {
+    align-self: flex-end;
+    background-color: #eeeeee;
+    color: rgb(0, 0, 0);
+    border-bottom-right-radius: 4px;
+    transition: 
+        max-width 0.3s ease,
+        padding 0.3s ease,
+        font-size 0.3s ease;
+}
+
+.bot-message {
+    align-self: flex-start;
+    background-color: #ffffff;
+    color: #0a0a0a;
+    border-bottom-left-radius: 4px;
+    /* border: 2px solid #000000; Add this line for a light gray border */
+    transition: 
+        max-width 0.3s ease,
+        padding 0.3s ease,
+        font-size 0.3s ease;
+}
+
+.message-time {
+    font-size: 9px;
+    font-style: italic;
+    font-family: verdana;
+    margin-top: 2px;
+    opacity: 0.8;
+    text-align: right;
+    transition: font-size 0.3s ease;
+}
+
+.chat-input:disabled {
+    background-color: #fafafa;
+    cursor: wait;
+}
+
+.typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 8px 16px;
+    background-color: #f1f1f1;
+    border-radius: 12px;
+    width: fit-content;
+    margin-left: 8px;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    background-color: #666;
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+@keyframes typing {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+/* Add smooth width transitions */
+.user-message, .bot-message {
+    transition: 
+        max-width 0.3s ease,
+        padding 0.3s ease,
+        font-size 0.3s ease;
+}
+
+/* Responsive Behavior */
+@media (max-width: 768px) {
+    .left-icons {
+        gap: 0.25rem;
+        padding-left: 0.25rem;
+    }
+    
+    .left-icons i {
+        font-size: 0.9rem;
+        padding: 0.3rem;
+    }
+    
+    .chat-input {
+        padding-left: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .right-actions {
+        width: 2.5rem;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .left-icons {
+        gap: 0.5rem;
+    }
+    
+    .icon-mic,
+    .send-icon {
+        padding: 0.3rem;
+    }
+}
+
+/* Interactive States */
+.icon-mic,
+.send-icon,
+.left-icons i {
+    color: #6c757d;
+    cursor: pointer;
+    transition: 
+        color 0.2s ease,
+        background 0.2s ease;
+}
+
+.icon-mic:hover,
+.send-icon:hover,
+.left-icons i:hover {
+    color: #495057;
+    background: rgba(0,0,0,0.05);
+}
+
+/* Mobile landscape optimization */
+@media (max-width: 480px) and (orientation: landscape) {
+    .chat-footer {
+        width: 95%;
+        padding: 4px 8px;
+    }
+    
+    .chat-input {
+        min-height: 32px;
+        font-size: 13px;
+    }
+}
+
+/* Ultra-wide screens */
+@media (min-width: 1600px) {
+    .chat-footer {
+        max-width: 1200px;
+    }
+}
+
+/* Chat container responsiveness */
+@media (max-width: 768px) {
+    .message {
+        max-width: 90%;
+        min-width: 160px;
+        padding: 10px 12px;
+    }
+    
+    .chat-container {
+        padding: 0 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .message {
+        max-width: 95%;
+        min-width: 120px;
+        font-size: clamp(14px, 4vw, 16px);
+    }
+    
+    .message-time {
+        font-size: 9px;
+        font-style: italic;
+        font-family: verdana;
+    }
+}
+
+/* Debug styles - remove after fixing */
+.chat-container {
+    flex: 1; /* Take up all remaining space */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent container overflow */
+    min-height: 0; /* Allow flex child to shrink */
+    padding: 0; /* Remove padding that was causing issues */
+    height: 100%; /* Ensure full height */
+}
+
+.chat-messages-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* Enable scrolling here */
+    overflow-x: hidden; /* Hide horizontal scroll */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    min-height: 0; /* Critical for flex children to respect overflow */
+    height: 100%; /* Ensure full height */
+}
+
+#chat-messages {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* Start from top instead of center */
+    align-items: stretch; /* Stretch items horizontally */
+    padding: 10px; /* Add padding for breathing room */
+    min-height: 0; /* Allow content to shrink */
+    flex: 1; /* Take up all available space */
+}
+
+/* Center welcome message when no other messages exist */
+#chat-messages:has(.message:only-child) {
+    justify-content: center;
+}
+
+/* Alternative approach for browsers that don't support :has() */
+#chat-messages.welcome-only {
+    justify-content: center;
+}
+
+/* Ensure messages start from top */
+#chat-messages > div:first-child {
+    margin-top: 0;
+}
+
+/* Keep the greeting message centered only when it's the first message */
+.bot-message:first-child {
+    align-self: center;
+    text-align: center;
+    background: transparent;
+    box-shadow: none;
+    margin: 20px 0;
+    max-width: 80%; /* Limit width for better readability */
+}
+
+/* Enhanced greeting message styling */
+.greeting-message {
+    font-size: 18px;
+    color: #333;
+    line-height: 1.5;
+    padding: 20px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #dee2e6;
+}
+
+.lang-option {
+    padding: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.lang-option:hover {
+    background-color: rgba(0,0,0,0.1);
+}
+
+#langIcon {
+    transition: all 0.3s ease;
+    font-style: normal; /* For custom initial display */
+    min-width: 16px;
+    display: inline-block;
+}
+.country-input {
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+}
+.country-input:hover {
+    color: #f00;
+}
+.country-input:active {
+    background-color: #333;
+    transform: scale(0.95);
+}
