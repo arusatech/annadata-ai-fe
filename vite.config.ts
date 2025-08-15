@@ -10,9 +10,12 @@ export default defineConfig({
     react(),
     legacy()
   ],
+  server: {
+    // Proxy configuration removed - now connecting directly to staging server
+  },
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: './src/setupTests.ts',
-  }
+    setupFiles: ['./src/setupTests.ts'],
+  },
 })

@@ -7,9 +7,9 @@ interface EnvironmentConfig {
 
 const ENV: Record<string, EnvironmentConfig> = {
   development: {
-    apiBaseUrl: process.env.NODE_ENV === 'development' ? '' : 'http://127.0.0.1:8000', // Use proxy in development
-    useSSL: false,
-    port: 8000
+    apiBaseUrl: 'https://staging.annadata.ai', // Use staging server directly in development
+    useSSL: true,
+    port: 443
   },
   staging: {
     apiBaseUrl: 'https://staging.annadata.ai',
@@ -17,7 +17,7 @@ const ENV: Record<string, EnvironmentConfig> = {
     port: 443
   },
   production: {
-    apiBaseUrl: 'https://annadata.ai',
+    apiBaseUrl: 'https://staging.annadata.ai',
     useSSL: true,
     port: 443
   }
@@ -27,30 +27,36 @@ const ENV: Record<string, EnvironmentConfig> = {
 const detectedEnv = ((): string => {
   console.log('[Env] Debug - REACT_APP_ENV:', process.env.REACT_APP_ENV);
   console.log('[Env] Debug - NODE_ENV:', process.env.NODE_ENV);
-  console.log('[Env] Debug - All env vars:', Object.keys(process.env).filter(key => key.includes('ENV')));
+  console.log('[Env] Debug - Vite DEV:', import.meta.env?.DEV);
+  console.log('[Env] Debug - Vite MODE:', import.meta.env?.MODE);
+  console.log('[Env] Debug - Vite BASE_URL:', import.meta.env?.BASE_URL);
+  console.log('[Env] Debug - All env vars:', Object.keys(process.env).filter(key => key.includes('ENV') || key.includes('MODE')));
   
-  // Prioritize REACT_APP_ENV over NODE_ENV
-  if (process.env.REACT_APP_ENV === 'staging') {
-    console.log('[Env] Detected environment: staging');
-    return 'staging';
-  } else if (process.env.REACT_APP_ENV === 'production') {
-    console.log('[Env] Detected environment: production');
-    return 'production';
-  } else if (process.env.NODE_ENV === 'production') {
-    console.log('[Env] Detected environment: production (from NODE_ENV)');
-    return 'production';
-  } else {
-    console.log('[Env] Detected environment: development');
+  // Priority order for environment detection
+  if (process.env.REACT_APP_ENV) {
+    console.log('[Env] Using REACT_APP_ENV:', process.env.REACT_APP_ENV);
+    return process.env.REACT_APP_ENV;
+  }
+  
+  if (import.meta.env?.DEV) {
+    console.log('[Env] Using Vite DEV mode (development)');
     return 'development';
   }
+  
+  if (process.env.NODE_ENV) {
+    console.log('[Env] Using NODE_ENV:', process.env.NODE_ENV);
+    return process.env.NODE_ENV;
+  }
+  
+  // Default to development if we can't determine
+  console.log('[Env] Defaulting to development');
+  return 'development';
 })();
 
-const config: EnvironmentConfig = ENV[detectedEnv] || ENV.development;
-console.log('[Env] Selected config:', config);
-console.log('[Env] Final API Base URL:', config.apiBaseUrl);
+console.log('[Env] Final detected environment:', detectedEnv);
+console.log('[Env] Final config:', ENV[detectedEnv]);
 
-export const isDevelopment: boolean = detectedEnv === 'development';
-export const isProduction: boolean = detectedEnv === 'production';
-export const isStaging: boolean = detectedEnv === 'staging';
+const config: EnvironmentConfig = ENV[detectedEnv];
+
 export { config, ENV };
 export default config;

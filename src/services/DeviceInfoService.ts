@@ -79,10 +79,37 @@ async function generateDeviceId(): Promise<string> {
   
   const filteredComponents: (string | number)[] = components.filter((item): item is string | number => item !== undefined);
   const fingerprint: string = filteredComponents.join('###');
-  const hashBuffer: ArrayBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
-  const hashArray: number[] = Array.from(new Uint8Array(hashBuffer));
-  const hashHex: string = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex.substring(0, 16);
+  
+  try {
+    // Try to use crypto.subtle.digest if available
+    if (typeof crypto !== 'undefined' && crypto.subtle && crypto.subtle.digest) {
+      const hashBuffer: ArrayBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
+      const hashArray: number[] = Array.from(new Uint8Array(hashBuffer));
+      const hashHex: string = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex.substring(0, 16);
+    } else {
+      // Fallback: simple hash function
+      console.warn('crypto.subtle.digest not available, using fallback hash');
+      return simpleHash(fingerprint).substring(0, 16);
+    }
+  } catch (error) {
+    console.warn('Error using crypto.subtle.digest, using fallback hash:', error);
+    return simpleHash(fingerprint).substring(0, 16);
+  }
+}
+
+// Simple hash function as fallback
+function simpleHash(str: string): string {
+  let hash = 0;
+  if (str.length === 0) return hash.toString(16);
+  
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  return Math.abs(hash).toString(16);
 }
 
 // Function to get a unique device ID

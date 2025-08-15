@@ -4,14 +4,14 @@
 
 .menu-container {
   flex: 0 0 auto; /* Don't grow or shrink */
-  max-width: 800px;
+  max-width: 400px; /* Reduced from 800px to 400px (half) */
   margin: 0 auto;
   width: 100%;
   padding: 2px;
   box-sizing: border-box;
   /* Enhanced safe area padding for modern devices with notches/cameras */
-  padding-top: max(2px, env(safe-area-inset-top, 12px)); /* Reduced from 10px to 8px */
-  margin-top: max(2px, env(safe-area-inset-top, 12px)); /* Reduced from 10px to 8px */
+  padding-top: max(2px, env(safe-area-inset-top, 8px)); /* Reduced from 10px to 8px */
+  margin-top: max(2px, env(safe-area-inset-top, 8px)); /* Reduced from 10px to 8px */
   /* Ensure menu stays below camera/notch area */
   position: relative;
   z-index: 100;
@@ -70,6 +70,7 @@
 /* Responsive adjustments for different screen sizes */
 @media (max-width: 768px) {
   .menu-container {
+    max-width: 300px; /* Reduced from 600px to 300px (half) */
     padding-top: max(13px, env(safe-area-inset-top, 23px)); /* Reduced from 15px to 13px */
     margin-top: max(13px, env(safe-area-inset-top, 23px)); /* Reduced from 15px to 13px */
   }
@@ -81,8 +82,9 @@
 
 @media (max-width: 480px) {
   .menu-container {
-    padding-top: max(18px, env(safe-area-inset-top, 28px)); /* Reduced from 20px to 18px */
-    margin-top: max(18px, env(safe-area-inset-top, 28px)); /* Reduced from 20px to 18px */
+    max-width: 250px; /* Reduced from 500px to 250px (half) */
+    padding-top: max(10px, env(safe-area-inset-top, 18px)); /* Reduced from 20px to 18px */
+    margin-top: max(10px, env(safe-area-inset-top, 18px)); /* Reduced from 20px to 18px */
   }
   
   .menu-bar {

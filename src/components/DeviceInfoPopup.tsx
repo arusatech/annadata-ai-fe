@@ -62,7 +62,7 @@ const DeviceInfoPopup: React.FC<DeviceInfoPopupProps> = ({ onClose }) => {
     onClose();
   };
 
-  const renderDeviceInfo = (): JSX.Element | null => {
+  const renderDeviceInfo = (): React.ReactElement | null => {
     if (!deviceInfo) return null;
 
     return (
@@ -96,7 +96,7 @@ const DeviceInfoPopup: React.FC<DeviceInfoPopupProps> = ({ onClose }) => {
     );
   };
 
-  const renderContent = (): JSX.Element => {
+  const renderContent = (): React.ReactElement => {
     if (loading) {
       return <p>Loading device information...</p>;
     }

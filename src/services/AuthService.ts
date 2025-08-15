@@ -51,16 +51,21 @@ class AuthService {
   constructor() {
     // Use environment-based configuration
     this.apiBaseUrl = config.apiBaseUrl;
-    console.log('AuthService - apiBaseUrl:', this.apiBaseUrl);
-    console.log('AuthService - config:', config);
-    console.log('AuthService - Environment check:', {
+    console.log('🔧 [CONFIG] AuthService - apiBaseUrl:', this.apiBaseUrl);
+    console.log('🔧 [CONFIG] AuthService - config:', config);
+    console.log('🔧 [CONFIG] AuthService - Environment check:', {
       isDevelopment: config === ENV.development,
       isStaging: config === ENV.staging,
       isProduction: config === ENV.production
     });
+    
+    console.log('🔧 [CONFIG] AuthService - Final apiBaseUrl:', this.apiBaseUrl);
     this.authCallbacks = [];
     this.tokenRefreshTimer = null;
     this.initializeSecureStorage();
+    
+    // Test SecurityService
+    this.testSecurityService();
   }
 
   // Initialize secure storage for mobile platforms
@@ -192,9 +197,9 @@ class AuthService {
 
       const response = await fetch(`${this.apiBaseUrl}/auth/initialize`, {
         method: 'POST',
-        headers: SecurityService.addSecurityHeaders({
+        headers: {
           'Content-Type': 'application/json',
-        }),
+        },
         body: JSON.stringify(payload),
       });
 
@@ -281,9 +286,9 @@ class AuthService {
 
       const response = await fetch(`${this.apiBaseUrl}/auth/send-otp`, {
         method: 'POST',
-        headers: SecurityService.addSecurityHeaders({
+        headers: {
           'Content-Type': 'application/json',
-        }),
+        },
         body: JSON.stringify(payload),
       });
 
@@ -341,9 +346,9 @@ class AuthService {
 
       const response = await fetch(`${this.apiBaseUrl}/auth/verify-otp`, {
         method: 'POST',
-        headers: SecurityService.addSecurityHeaders({
+        headers: {
           'Content-Type': 'application/json',
-        }),
+        },
         body: JSON.stringify(payload),
       });
 
@@ -399,9 +404,9 @@ class AuthService {
 
       const response = await fetch(`${this.apiBaseUrl}/auth/register`, {
         method: 'POST',
-        headers: SecurityService.addSecurityHeaders({
+        headers: {
           'Content-Type': 'application/json',
-        }),
+        },
         body: JSON.stringify(payload),
       });
       const data = await response.json();
@@ -494,8 +499,8 @@ class AuthService {
       // Clear any cached offline state
       await this.removeSecureItem('offline_mode');
       
-      // Attempt to initialize JWT again
-      const result = await this.initializeJWT();
+      // Attempt to initialize JWT again with retry logic
+      const result = await this.initializeJWTWithRetry();
       
       if (result.success && !result.offline) {
         console.log('✅ Server connection successful!');
@@ -530,6 +535,52 @@ class AuthService {
     }
   }
 
+  // Initialize JWT with retry logic and exponential backoff
+  private async initializeJWTWithRetry(maxRetries: number = 3): Promise<AuthResponse> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 Attempt ${attempt}/${maxRetries} to connect to server...`);
+        
+        const result = await this.initializeJWT();
+        
+        // If successful and not offline, return immediately
+        if (result.success && !result.offline) {
+          console.log(`✅ Connection successful on attempt ${attempt}`);
+          return result;
+        }
+        
+        // If offline mode, don't retry
+        if (result.offline) {
+          console.log(`🌐 Offline mode detected on attempt ${attempt}`);
+          return result;
+        }
+        
+        // If failed but not offline, retry with exponential backoff
+        if (attempt < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Max 5 seconds
+          console.log(`⏳ Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+      } catch (error) {
+        console.error(`❌ Attempt ${attempt} failed:`, error);
+        
+        if (attempt < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          console.log(`⏳ Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          // Last attempt failed, switch to offline mode
+          console.log('❌ All retry attempts failed, switching to offline mode');
+          return await this.handleOfflineMode();
+        }
+      }
+    }
+    
+    // Should not reach here, but just in case
+    return await this.handleOfflineMode();
+  }
+
   // Remove an auth state change callback
   removeAuthCallback(callback: AuthCallback): void {
     this.authCallbacks = this.authCallbacks.filter(cb => cb !== callback);
@@ -555,10 +606,10 @@ class AuthService {
 
       const response = await fetch(`${this.apiBaseUrl}/auth/save-profile`, {
         method: 'POST',
-        headers: SecurityService.addSecurityHeaders({
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-        }),
+        },
         body: JSON.stringify(userData),
       });
 
@@ -591,10 +642,10 @@ class AuthService {
 
       const response = await fetch(`${this.apiBaseUrl}/auth/get-profile`, {
         method: 'POST',
-        headers: SecurityService.addSecurityHeaders({
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-        }),
+        },
         body: JSON.stringify({
           user_id: user_id,
         }),
@@ -641,34 +692,191 @@ class AuthService {
     }
   }
 
+  // Comprehensive diagnostic method
+  async runDiagnostics(): Promise<void> {
+    console.log('🔍 Running comprehensive diagnostics...');
+    console.log('='.repeat(50));
+    
+    // Environment check
+    console.log('🌍 Environment Analysis:');
+    console.log('  - NODE_ENV:', process.env.NODE_ENV);
+    console.log('  - REACT_APP_ENV:', process.env.REACT_APP_ENV);
+    console.log('  - Vite DEV:', import.meta.env?.DEV);
+    console.log('  - API Base URL:', this.apiBaseUrl);
+    console.log('  - Is Proxy:', this.apiBaseUrl.startsWith('/'));
+    
+    // Network connectivity test
+    console.log('\n🌐 Network Connectivity Test:');
+    try {
+      const response = await fetch(this.apiBaseUrl, { method: 'HEAD' });
+      console.log('  ✅ Base URL accessible:', response.status);
+    } catch (error: any) {
+      console.log('  ❌ Base URL not accessible:', error.message);
+    }
+    
+    // CORS test
+    console.log('\n🔒 CORS Test:');
+    try {
+      const testPayload = { device_id: 'diagnostic-test' };
+      
+      const response = await fetch(`${this.apiBaseUrl}/auth/initialize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testPayload),
+      });
+      
+      console.log('  ✅ CORS test successful:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('  📄 Response data:', data);
+      }
+    } catch (error: any) {
+      console.log('  ❌ CORS test failed:', error.message);
+      
+      if (error.message.includes('Failed to fetch')) {
+        console.log('  💡 This is likely a CORS issue');
+        console.log('  💡 Solutions:');
+        console.log('     - Set REACT_APP_ENV=staging');
+        console.log('     - Check Vite proxy configuration');
+        console.log('     - Verify server CORS settings');
+      }
+    }
+    
+    // Device ID test
+    console.log('\n📱 Device ID Test:');
+    try {
+      const { getDeviceId } = await import('./DeviceInfoService.js');
+      const deviceId = await getDeviceId();
+      console.log('  ✅ Device ID generated:', deviceId);
+    } catch (error: any) {
+      console.log('  ❌ Device ID generation failed:', error.message);
+    }
+    
+    console.log('\n' + '='.repeat(50));
+    console.log('🔍 Diagnostics complete');
+  }
+
+  // Manual test method for debugging (can be called from browser console)
+  async manualTestConnection(): Promise<void> {
+    console.log('🔧 Manual connection test started...');
+    console.log('🔧 API Base URL:', this.apiBaseUrl);
+    console.log('🔧 Environment:', import.meta.env?.DEV ? 'development' : 'production');
+    console.log('🔧 Is Proxy:', this.apiBaseUrl.startsWith('/'));
+    console.log('🔧 Target Server: staging.annadata.ai');
+    
+    try {
+      // Test 1: Simple fetch to the base URL
+      console.log('🔧 Test 1: Simple fetch to base URL...');
+      const response1 = await fetch(this.apiBaseUrl, {
+        method: 'HEAD'
+      });
+      console.log('🔧 Test 1 result:', response1.status, response1.statusText);
+      
+      // Test 2: Fetch to /auth/initialize with optimized configuration
+      console.log('🔧 Test 2: Fetch to /auth/initialize...');
+      const testPayload = { device_id: 'test-device-456' };
+      
+      const response2 = await fetch(`${this.apiBaseUrl}/auth/initialize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testPayload),
+      });
+      console.log('🔧 Test 2 result:', response2.status, response2.statusText);
+      
+      if (response2.ok) {
+        const data = await response2.json();
+        console.log('🔧 Test 2 data:', data);
+      } else {
+        const errorText = await response2.text();
+        console.log('🔧 Test 2 error:', errorText);
+      }
+      
+    } catch (error: any) {
+      console.error('🔧 Manual test error:', error);
+      console.log('🔧 Error name:', error.name);
+      console.log('🔧 Error message:', error.message);
+      console.log('🔧 Error stack:', error.stack);
+      
+      // Provide specific guidance based on error type
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        console.log('💡 CORS/Network Issue Detected!');
+        console.log('💡 Solutions:');
+        console.log('   1. Check if staging.annadata.ai is accessible');
+        console.log('   2. Verify CORS is enabled on the server');
+        console.log('   3. Check browser network tab for detailed errors');
+        console.log('   4. Try using a CORS browser extension for testing');
+      }
+    }
+  }
+
+  // Simple test method to check network connectivity
+  async testNetworkConnection(): Promise<void> {
+    console.log('🧪 [TEST] Testing network connection...');
+    console.log('🧪 [TEST] API Base URL:', this.apiBaseUrl);
+    
+    try {
+      // Test 1: Simple HEAD request
+      console.log('🧪 [TEST] Making HEAD request...');
+      const headResponse = await fetch(this.apiBaseUrl, { method: 'HEAD' });
+      console.log('🧪 [TEST] HEAD response status:', headResponse.status);
+      
+      // Test 2: Simple POST request with minimal payload
+      console.log('🧪 [TEST] Making POST request...');
+      const postResponse = await fetch(`${this.apiBaseUrl}/auth/initialize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ device_id: 'test-123' }),
+      });
+      console.log('🧪 [TEST] POST response status:', postResponse.status);
+      
+      if (postResponse.ok) {
+        const data = await postResponse.json();
+        console.log('🧪 [TEST] POST response data:', data);
+      } else {
+        const errorText = await postResponse.text();
+        console.log('🧪 [TEST] POST error response:', errorText);
+      }
+      
+    } catch (error: any) {
+      console.error('🧪 [TEST] Network test failed:', error);
+      console.error('🧪 [TEST] Error name:', error.name);
+      console.error('🧪 [TEST] Error message:', error.message);
+    }
+  }
+
   // Initialize JWT on app startup
   async initializeJWT(): Promise<AuthResponse> {
     try {
-      console.log('Initializing JWT authentication...');
-      console.log('Using API Base URL:', this.apiBaseUrl);
+      console.log('🚀 [1] Initializing JWT authentication...');
       
       // Get device ID
       const { getDeviceId } = await import('./DeviceInfoService.js');
       const deviceId = await getDeviceId();
+      console.log('📱 [2] Device ID:', deviceId);
 
-      await this.setSecureItem('device_id', deviceId);
+      if (deviceId) {
+        await this.setSecureItem('device_id', deviceId);
+        console.log('💾 [3] Device ID stored');
+      }
 
       const { getFullDeviceInfo } = await import('./DeviceInfoService.js');
       const deviceDetails = await getFullDeviceInfo();
       await this.setSecureItem('device_details', JSON.stringify(deviceDetails));
+      console.log('💾 [4] Device details stored');
       
       // Get cached user_id if available
       const cachedUserId = await this.getSecureItem('user_id');
+      console.log('👤 [5] Cached user_id:', cachedUserId);
       
       // Check if device_id is null (should work offline)
       if (!deviceId) {
-        console.log('Device ID is null, working offline mode');
-        return await this.handleOfflineMode();
-      }
-      
-      // Check if API base URL is accessible
-      if (!this.apiBaseUrl || this.apiBaseUrl === '') {
-        console.log('No API base URL configured, working offline mode');
+        console.log('❌ [6] Device ID is null, working offline mode');
         return await this.handleOfflineMode();
       }
       
@@ -684,72 +892,113 @@ class AuthService {
         payload.user_id = cachedUserId;
       }
       
-      console.log('Attempting to connect to:', `${this.apiBaseUrl}/auth/initialize`);
+      console.log('📤 [7] Attempting to connect to:', `${this.apiBaseUrl}/auth/initialize`);
+      console.log('📦 [8] Request payload:', payload);
       
-      // Send device_id and user_id to server to check if user exists
-      const response = await fetch(`${this.apiBaseUrl}/auth/initialize`, {
-        method: 'POST',
-        headers: SecurityService.addSecurityHeaders({
-          'Content-Type': 'application/json',
-        }),
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
-      if (!response.ok) {
-        console.log('Server error during initialization:', data);
-        // Server error - work offline
-        return await this.handleOfflineMode();
-      }
+      try {
+        // Send device_id and user_id to server to check if user exists
+        const response = await fetch(`${this.apiBaseUrl}/auth/initialize`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
 
-      await this.setSecureItem('jwt_token', data.token);
-      await this.setSecureItem('user_id', data.user_id);
-      await this.setSecureItem('device_id', data.device_id);
-      await this.setSecureItem('expires_in', (currentTime + 3600).toString());
+        clearTimeout(timeoutId);
+        console.log('📥 [9] Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.log('❌ [11] Server error during initialization:', errorData);
+          // Server error - work offline
+          return await this.handleOfflineMode();
+        }
+        
+        const data = await response.json();
+        console.log('📄 [10] Response data:', data);
 
-      if (!data.token) {
-        return await this.handleOfflineMode();
-      }
-      
-      if (!SecurityService.validateJWTFormat(data.token)) {
-        console.error('Invalid JWT token format:', data.token);
-        return {
-          success: false,
-          userExists: false,
-          message: 'Invalid JWT token format received from server'
-        };
-      }
+        await this.setSecureItem('jwt_token', data.token);
+        await this.setSecureItem('user_id', data.user_id);
+        if (data.device_id) {
+          await this.setSecureItem('device_id', data.device_id);
+        }
+        await this.setSecureItem('expires_in', (currentTime + 3600).toString());
+        console.log('💾 [12] All data stored successfully');
 
-      if (data.user_id) {
-        return {
-          success: true,
-          userExists: true,
-          token: data.token,
-          userId: data.user_id,
-          message: 'User authenticated successfully'
-        };
-      } else {
-        console.log('User does not exist');
-        return {
-          success: true,
-          userExists: false,
-          token: data.token,
-          message: 'User needs to register'
-        };
+        if (!data.token) {
+          console.log('❌ [13] No token received, switching to offline mode');
+          return await this.handleOfflineMode();
+        }
+        
+        if (!SecurityService.validateJWTFormat(data.token)) {
+          console.error('❌ [14] Invalid JWT token format:', data.token);
+          return {
+            success: false,
+            userExists: false,
+            message: 'Invalid JWT token format received from server'
+          };
+        }
+
+        if (data.user_id) {
+          console.log('✅ [15] User authenticated successfully');
+          return {
+            success: true,
+            userExists: true,
+            token: data.token,
+            userId: data.user_id,
+            message: 'User authenticated successfully'
+          };
+        } else {
+          console.log('📝 [16] User does not exist, needs registration');
+          return {
+            success: true,
+            userExists: false,
+            token: data.token,
+            message: 'User needs to register'
+          };
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError; // Re-throw to be caught by outer catch block
       }
     } catch (error) {
-      // Improved error handling with more specific messages
-      if ((error as Error).name === 'TypeError' && (error as Error).message.includes('Failed to fetch')) {
-        console.log('Network connection unavailable - switching to offline mode');
-        console.log('Error details:', (error as Error).message);
-        return await this.handleOfflineMode();
-      } else if ((error as Error).name === 'TypeError' && (error as Error).message.includes('ERR_NAME_NOT_RESOLVED')) {
-        console.log('Domain resolution failed - switching to offline mode');
-        console.log('Domain not accessible:', this.apiBaseUrl);
-        return await this.handleOfflineMode();
+      console.error('❌ [ERROR] Error during JWT initialization:', error);
+      console.error('❌ [ERROR] Error name:', (error as Error).name);
+      console.error('❌ [ERROR] Error message:', (error as Error).message);
+      
+      // Improved error handling with more specific error types
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.log('⏰ [ERROR] Request timeout - server not responding');
+          return {
+            success: false,
+            userExists: false,
+            offline: true,
+            message: 'Server connection timeout. Please check your internet connection and try again.'
+          };
+        } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          console.log('🌐 [ERROR] Network connection unavailable - switching to offline mode');
+          return await this.handleOfflineMode();
+        } else if (error.message.includes('CORS')) {
+          console.log('🔒 [ERROR] CORS error - server not accessible');
+          return {
+            success: false,
+            userExists: false,
+            offline: true,
+            message: 'Server access blocked. Please check your network settings.'
+          };
+        } else {
+          console.error('❌ [ERROR] Unexpected error during JWT initialization:', error);
+          return await this.handleOfflineMode();
+        }
       } else {
-        console.error('Unexpected error during JWT initialization:', error);
+        console.error('❌ [ERROR] Unknown error type during JWT initialization:', error);
         return await this.handleOfflineMode();
       }
     }
@@ -808,6 +1057,103 @@ class AuthService {
         token: null,
         offline: true,
         message: 'Working offline without authentication'
+      };
+    }
+  }
+
+  // Test SecurityService
+  testSecurityService(): void {
+    console.log('🔒 [SECURITY] Testing SecurityService...');
+    try {
+      const headers = SecurityService.addSecurityHeaders({
+        'Content-Type': 'application/json',
+      });
+      console.log('🔒 [SECURITY] Security headers:', headers);
+      
+      const isValid = SecurityService.validateJWTFormat('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c');
+      console.log('🔒 [SECURITY] JWT validation test:', isValid);
+      
+    } catch (error: any) {
+      console.error('🔒 [SECURITY] SecurityService test failed:', error);
+    }
+  }
+
+  // Check network connectivity
+  async checkNetworkConnectivity(): Promise<{
+    isOnline: boolean;
+    serverReachable: boolean;
+    error?: string;
+  }> {
+    try {
+      console.log('🌐 Checking network connectivity...');
+      
+      // First check if we're online
+      if (!navigator.onLine) {
+        console.log('❌ Device is offline');
+        return {
+          isOnline: false,
+          serverReachable: false,
+          error: 'Device is offline'
+        };
+      }
+      
+      // Test basic internet connectivity
+      try {
+        const response = await fetch('https://www.google.com/favicon.ico', {
+          method: 'HEAD',
+          signal: AbortSignal.timeout(5000) // 5 second timeout
+        });
+        console.log('✅ Basic internet connectivity: OK');
+      } catch (error) {
+        console.log('❌ Basic internet connectivity: Failed');
+        return {
+          isOnline: true,
+          serverReachable: false,
+          error: 'No internet connection'
+        };
+      }
+      
+      // Test server connectivity
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch(`${this.apiBaseUrl}/health`, {
+          method: 'GET',
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          console.log('✅ Server connectivity: OK');
+          return {
+            isOnline: true,
+            serverReachable: true
+          };
+        } else {
+          console.log('❌ Server connectivity: HTTP error', response.status);
+          return {
+            isOnline: true,
+            serverReachable: false,
+            error: `Server returned HTTP ${response.status}`
+          };
+        }
+      } catch (error) {
+        console.log('❌ Server connectivity: Failed', error);
+        return {
+          isOnline: true,
+          serverReachable: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+      
+    } catch (error) {
+      console.error('❌ Error checking network connectivity:', error);
+      return {
+        isOnline: false,
+        serverReachable: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }

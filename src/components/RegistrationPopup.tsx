@@ -276,31 +276,19 @@ const RegistrationPopup: React.FC<RegistrationPopupProps> = ({ onClose, onAuthSt
   };
 
   const handleSendOtp = async (): Promise<void> => {
-    console.log('handleSendOtp called with:', {
-      contactInfo,
-      selectedContactMethod,
-      countryCode,
-      username
-    });
-    
-    setOtpState('requesting');
-    setError(null);
-    setIsPopupInactive(true);
-
-    // Validate contact information using the validation function
-    const validation = validateContactInfo(contactInfo, selectedContactMethod, countryCode);
-    if (!validation.isValid) {
-      setError(validation.error);
-      setOtpState('failed');
-      setIsPopupInactive(false);
+    if (!contactInfo.trim() || validationError) {
+      setError('Please enter a valid contact information');
       return;
     }
 
+    setIsPopupInactive(true);
+    setOtpState('requesting');
+    setError(null);
+
+    // Define the contact variable
     const contact = selectedContactMethod === 'phone' 
       ? `${countryCode}${contactInfo}` 
       : contactInfo;
-
-    console.log('Contact to send OTP to:', contact);
 
     try {
       // Get device ID if not already available
@@ -308,14 +296,18 @@ const RegistrationPopup: React.FC<RegistrationPopupProps> = ({ onClose, onAuthSt
       if (!deviceId) {
         const { getDeviceId } = await import('../services/DeviceInfoService.js');
         deviceId = await getDeviceId();
-        await authService.setSecureItem('device_id', deviceId);
+        if (deviceId) {
+          await authService.setSecureItem('device_id', deviceId);
+        }
       }
 
       console.log('Device ID:', deviceId);
 
       await authService.setSecureItem('username', username);
       await authService.setSecureItem('user_id', contact);
-      await authService.setSecureItem('device_id', deviceId);
+      if (deviceId) {
+        await authService.setSecureItem('device_id', deviceId);
+      }
       
       console.log('Calling authService.sendOtp with:', selectedContactMethod, contact);
       const result = await authService.sendOtp(selectedContactMethod, contact);
@@ -694,7 +686,6 @@ const RegistrationPopup: React.FC<RegistrationPopupProps> = ({ onClose, onAuthSt
       {/* Conditionally render the new popup */}
       {isCountryPopupVisible && (
         <CountryCodePopup
-          isOpen={isCountryPopupVisible}
           options={dropdownOptions}
           onClose={() => setIsCountryPopupVisible(false)}
           onSelect={(option) => {
