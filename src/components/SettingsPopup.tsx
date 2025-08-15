@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IonDatetime, IonModal } from '@ionic/react';
+import { DatetimePicker } from '@capawesome-team/capacitor-datetime-picker';
 import '../css/style.css';
 import '../css/icons.min.css';
 import '../css/common.css';
@@ -15,11 +15,14 @@ interface UserData {
   location: string;
   subscription: string;
   insurance: string;
+  device_id?: string;
+  role?: string;
+  device_details?: any;
 }
 
 interface SettingsPopupProps {
   onClose: () => void;
-  onAuthStateChange?: (isAuthenticated: boolean, userExists: boolean) => void;
+  onAuthStateChange: (isLoggedIn: boolean, isOffline: boolean) => void;
 }
 
 const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose, onAuthStateChange }) => {
@@ -38,7 +41,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose, onAuthStateChang
   const [error, setError] = useState<string | null>(null);
   const [pass, setPass] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
-  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
 
   // Generate year options (current year to 100 years back)
   const currentYear = new Date().getFullYear();
@@ -97,7 +100,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose, onAuthStateChang
     }
   };
 
-  const handleInputChange = (field: keyof UserData, value: string | Date | null): void => {
+  const handleInputChange = (field: keyof UserData, value: string): void => {
     setUserData(prev => ({
       ...prev,
       [field]: value
@@ -106,7 +109,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose, onAuthStateChang
 
   // Language to locale mapping
   const getLocaleFromLanguage = (languageCode: string): string => {
-    const localeMap: { [key: string]: string } = {
+    const localeMap: Record<string, string> = {
       'en': 'en-US',
       'hi': 'hi-IN',
       'bn': 'bn-IN',
@@ -144,22 +147,34 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose, onAuthStateChang
     return localeMap[languageCode] || 'en-US'; // Fallback to en-US
   };
 
-  // Updated function to handle datetime picker using IonDatetime
-  const handleDateOfBirthPicker = (): void => {
-    setShowDatePicker(true);
-  };
+  // New function to handle datetime picker
+  const handleDateOfBirthPicker = async (): Promise<void> => {
+    try {
+      const currentDate = userData.date_of_birth || new Date('1947-07-19T05:30:00');
+      const currentLanguage = i18n.language || 'en';
+      const locale = getLocaleFromLanguage(currentLanguage);
+      
+      const { value } = await DatetimePicker.present({
+        cancelButtonText: t('cancel', 'Cancel'),
+        doneButtonText: t('ok', 'OK'),
+        mode: 'datetime',
+        value: currentDate.toISOString(),
+        theme: 'dark', // Changed from 'auto' to 'dark' for black theme
+        locale: locale, // Now dynamic based on user's language
+        max: new Date().toISOString(), // Don't allow future dates
+        min: new Date(1900, 0, 1).toISOString(), // Reasonable minimum date
+        format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+      });
 
-  const handleDateChange = (event: CustomEvent): void => {
-    const selectedDate = new Date(event.detail.value);
-    setUserData(prev => ({
-      ...prev,
-      date_of_birth: selectedDate
-    }));
-    setShowDatePicker(false);
-  };
-
-  const handleDateCancel = (): void => {
-    setShowDatePicker(false);
+      // Update the date of birth
+      setUserData(prev => ({
+        ...prev,
+        date_of_birth: new Date(value)
+      }));
+    } catch (error) {
+      // User cancelled the picker
+      console.log('Date picker was cancelled or dismissed');
+    }
   };
 
   const handleSaveSettings = async (): Promise<void> => {
@@ -174,26 +189,25 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose, onAuthStateChang
         dateOfBirth = userData.date_of_birth.toISOString();
       }
       
-      const { getFullDeviceInfo } = await import('../services/DeviceInfoService.js');
-      // Update the device location extraction to handle the actual DeviceInfo structure
+      const { getFullDeviceInfo } = await import('../services/DeviceInfoService');
       const deviceDetails = await getFullDeviceInfo();
       const device_location = {
-        latitude: (deviceDetails as any).latitude || 0, // Use type assertion or provide default
-        longitude: (deviceDetails as any).longitude || 0
+        latitude: deviceDetails.latitude,
+        longitude: deviceDetails.longitude
       };
       
       const updateData = {
         username: userData.username,
         user_id: userData.user_id || await AuthService.getSecureItem('user_id'),
-        device_id: await AuthService.getSecureItem('device_id'),
-        role: 'user',
+        device_id: userData.device_id || await AuthService.getSecureItem('device_id'),
+        role: userData.role || 'user',
         date_of_birth: dateOfBirth,
         gender: userData.gender,
         location: device_location,
         location_name: userData.location,
         subscription: userData.subscription,
         insurance: userData.insurance,
-        device_details: deviceDetails
+        device_details: userData.device_details || deviceDetails
       };
       
       const result = await AuthService.updateProfile(updateData);
@@ -229,6 +243,11 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose, onAuthStateChang
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSuccessConfirm = (): void => {
+    setShowSuccessMessage(false);
+    onClose();
   };
 
   const handleLogout = async (): Promise<void> => {
@@ -337,7 +356,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose, onAuthStateChang
               </div>
             </div>
             
-            {/* Date of Birth - Updated with IonDatetime */}
+            {/* Date of Birth - Updated */}
             <fieldset>
               <legend id="label-dateofbirth">{t('dateofbirth', 'Date of Birth')}</legend>
               <div className="date-picker-container">
@@ -354,22 +373,6 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({ onClose, onAuthStateChang
                 </button>
               </div>
             </fieldset>
-
-            {/* IonDatetime Modal */}
-            <IonModal isOpen={showDatePicker} onDidDismiss={handleDateCancel}>
-              <IonDatetime
-                value={userData.date_of_birth?.toISOString()}
-                onIonChange={handleDateChange}
-                onIonCancel={handleDateCancel}
-                presentation="date-time"
-                showDefaultButtons={true}
-                doneText={t('ok', 'OK')}
-                cancelText={t('cancel', 'Cancel')}
-                locale={getLocaleFromLanguage(i18n.language || 'en')}
-                max={new Date().toISOString()}
-                min={new Date(1900, 0, 1).toISOString()}
-              />
-            </IonModal>
             
             {/* Gender */}
             <fieldset>
