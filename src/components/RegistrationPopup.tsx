@@ -150,7 +150,9 @@ const RegistrationPopup: React.FC<RegistrationPopupProps> = ({ onClose, onAuthSt
       if (code === 'email') {
         return { value: '@', label: 'Email @' };
       }
-      const flag = getFlagEmoji(country);
+      // Extract country code from array: ['us', '$'] -> 'us'
+      const countryCode = Array.isArray(country) ? country[0] : country;
+      const flag = getFlagEmoji(countryCode);
       return { value: code, label: `${code} ${flag}` };
     });
     const india = options.find(o => o.value === '+91');
@@ -585,7 +587,7 @@ const RegistrationPopup: React.FC<RegistrationPopupProps> = ({ onClose, onAuthSt
                 {selectedContactMethod === 'email' ? (
                   <i className="icon icon-email" />
                 ) : (
-                  <span>{getFlagEmoji(countryCodes[countryCode])}</span>
+                  <span>{getFlagEmoji(Array.isArray(countryCodes[countryCode]) ? countryCodes[countryCode][0] : countryCodes[countryCode])}</span>
                 )}
               </div>
               

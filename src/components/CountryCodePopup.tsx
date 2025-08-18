@@ -29,7 +29,7 @@ const CountryCodePopup: React.FC<CountryCodePopupProps> = ({
     <>
       <div className="popup-backdrop show" onClick={onClose}></div>
       {/* Make the popup scrollable for the long list of countries */}
-      <div className="language-popup show" style={{ height: '70vh', overflowY: 'auto' }}>
+      <div className="language-popup show" style={{ height: '70vh', overflowY: 'auto', width: '100%', maxWidth: '100px' }}>
         <div className="popup-wrapper">
           <span className="close-btn" onClick={onClose}>×</span>
           <div className="country-list">

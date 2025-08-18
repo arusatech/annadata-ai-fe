@@ -12,6 +12,7 @@ import DeviceInfoPopup from './DeviceInfoPopup';
 import RegistrationPopup from './RegistrationPopup';
 import SettingsPopup from './SettingsPopup';
 import AuthService from '../services/AuthService';
+import NidhiPopup from './NidhiPopup';
 
 interface MenuContainerProps {
   isUserLoggedIn: boolean;
@@ -23,9 +24,12 @@ const MenuContainer: React.FC<MenuContainerProps> = ({ isUserLoggedIn, isOffline
   const { t, i18n } = useTranslation();
   const [isLangPopupVisible, setIsLangPopupVisible] = useState(false);
   const [isDeviceInfoPopupVisible, setIsDeviceInfoPopupVisible] = useState(false);
+  const [isNidhiPopupVisible, setIsNidhiPopupVisible] = useState(false);
   const [isRegistrationPopupVisible, setIsRegistrationPopupVisible] = useState(false);
   const [isSettingsPopupVisible, setIsSettingsPopupVisible] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('+91'); // Default to India
+  const [selectedCurrencySymbol, setSelectedCurrencySymbol] = useState<string>('₹'); // Default to Rupee
 
   const toggleLanguageDropdown = () => {
     setIsLangPopupVisible(!isLangPopupVisible);
@@ -83,6 +87,14 @@ const MenuContainer: React.FC<MenuContainerProps> = ({ isUserLoggedIn, isOffline
     }
   };
 
+  const toggleNidhiPopup = () => {
+    setIsNidhiPopupVisible(!isNidhiPopupVisible);
+  };
+
+  const handleCurrencyChange = (currencySymbol: string) => {
+    setSelectedCurrencySymbol(currencySymbol);
+  };
+
   return (
     <div className="menu-container">
       <div className="menu-bar">
@@ -110,6 +122,15 @@ const MenuContainer: React.FC<MenuContainerProps> = ({ isUserLoggedIn, isOffline
           )}
         </div>
         <div className="menu-icons">
+          <div className="icon">
+            <div 
+              className={`nidhi-currency-button ${isOffline ? 'offline' : ''}`}
+              onClick={toggleNidhiPopup}
+              title={`Currency: ${selectedCurrencySymbol}`}
+            >
+              <span className="currency-symbol">{selectedCurrencySymbol}</span>
+            </div>
+          </div>
           <div id="user-status-icon" className="icon">
             {isUserLoggedIn ? (
               <i 
@@ -149,6 +170,16 @@ const MenuContainer: React.FC<MenuContainerProps> = ({ isUserLoggedIn, isOffline
           onClose={() => setIsSettingsPopupVisible(false)} 
           onAuthStateChange={handleSettingsAuthStateChange}
         />
+      )}
+
+      {isNidhiPopupVisible && (
+        <>
+          <div className="popup-backdrop show" onClick={toggleNidhiPopup}></div>
+          <NidhiPopup 
+            onClose={toggleNidhiPopup} 
+            onCurrencyChange={handleCurrencyChange}
+          />
+        </>
       )}
 
       {isDeviceInfoPopupVisible && (
