@@ -36,6 +36,8 @@
   box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
   position: relative;
   overflow: hidden;
+  height: 50%;
+  margin: 0 auto;
 }
 
 .balance-card::before {
@@ -183,10 +185,10 @@
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   margin: 0;
-  padding: 16px 0;
+  padding: 8px 0;
   border-top: 1px solid rgba(255,255,255,0.2);
   border-bottom: 1px solid rgba(255,255,255,0.2);
-  min-height: 120px; /* Ensure consistent height for the two columns */
+  min-height: 60px;
 }
 
 /* First Column - Balance spanning two rows */
