@@ -84,6 +84,8 @@ export const langData: LangDataType = {
     'national': 'தேசிய',  
     'international': 'அனைத்துலக',
     'deposit': 'பணம்',
+    'principal': 'முதல் தொகை',
+    'proposal': 'முன்மொழிவு',
   },
   'te': {
     'title': 'అన్నదాత (ai)\u2120',
@@ -154,6 +156,8 @@ export const langData: LangDataType = {
     'national' : 'జాతీయ',
     'international' : 'అంతర్జాతీయ',
     'deposit': 'పణము',
+    'principal': 'పెట్టుబడి',
+    'proposal': 'ప్రతిపాదన',
   },
   'hi': {
     'title': 'अन्नदाता (ai)\u2120',
@@ -224,7 +228,8 @@ export const langData: LangDataType = {
     'national': 'राष्ट्रीय',  
     'international': 'अंतरराष्ट्रीय',
     'deposit': 'अमानत',
-    
+    'principal': 'मूलधन',
+    'proposal': 'प्रस्ताव',
   },
   'kn': {
     'title': 'ಅನ್ನದಾತ (ai)\u2120',
@@ -295,6 +300,8 @@ export const langData: LangDataType = {
     'national': 'ರಾಷ್ಟ್ರೀಯ',
     'international': 'ಅಂತರರಾಷ್ಟ್ರೀಯ',
     'deposit': 'ಠೇವಣಿ',
+    'principal': 'ಮೂಲಧನ',
+    'proposal': 'ಸಲಹೆ',
   },
   'or': {
     'title': 'ଅନ୍ନଦାତା (ai)\u2120',
@@ -365,6 +372,8 @@ export const langData: LangDataType = {
     'national': 'ଜାତୀୟ',
     'international': 'ଆନ୍ତର୍ଜାତୀୟ',
     'deposit': 'ଅମାନତ',
+    'principal': 'ମୂଳଧନ',
+    'proposal': 'ପ୍ରସ୍ତାବ',
   },
   'bn': {
     'title': 'অন্নদাতা (ai)\u2120',
@@ -430,11 +439,13 @@ export const langData: LangDataType = {
     'nidhi': 'নিধি',
     'provide': 'প্রদান করুন',
     'loan': 'ঋণ',
-    'project': 'প্রকল্প',
+    'project': 'প্ৰকল্প',
     'local': 'স্থানীয়',
     'national': 'জাতীয়',
-    'international': 'আন্তর্জাতিক',
+    'international': 'আন্তঃৰাষ্ট্ৰীয়',
     'deposit': 'অমানত',
+    'principal': 'মূলধন',
+    'proposal': 'প্রস্তাব',
   },
   'pa': {
     'title': 'ਅਨ੍ਨਦਾਤਾ (ai)\u2120',
@@ -505,6 +516,8 @@ export const langData: LangDataType = {
     'national': 'ਰਾਸ਼ਟਰੀ',
     'international': 'ਅੰਤਰਰਾਸ਼ਟਰੀ',
     'deposit': 'ਅਮਾਨਤ',
+    'principal': 'ਮੂਲਧਨ',
+    'proposal': 'ਪ੍ਰਸਤਾਵ',
   },
   'mr': {
     'title': 'अन्नदाता (ai)\u2120',
@@ -575,6 +588,8 @@ export const langData: LangDataType = {
     'national': 'राष्ट्रीय',
     'international': 'आंतरराष्ट्रीय',
     'deposit': 'अमानत',
+    'principal': 'मूळधन',
+    'proposal': 'प्रस्ताव',
   },
   'ml': {
     'title': 'അന്നദാത (ai)\u2120',
@@ -645,6 +660,8 @@ export const langData: LangDataType = {
     'national': 'ദേശീയ',
     'international': 'അന്തർദേശീയ',
     'deposit': 'അമാനത',
+    'principal': 'മൂലധനം',
+    'proposal': 'പ്രതിപാദനം',
   },
   'as': {
     'title': 'আন্নাডাটা (ai)\u2120',
@@ -715,6 +732,8 @@ export const langData: LangDataType = {
     'national': 'জাতীয়',
     'international': 'আন্তঃৰাষ্ট্ৰীয়',
     'deposit': 'অমানত',
+    'principal': 'মূলধন',
+    'proposal': 'প্ৰস্তাৱ',
   },
   'gu': {
     'title': 'અન્નદાતા (ai)\u2120',
@@ -785,6 +804,8 @@ export const langData: LangDataType = {
     'national': 'રાષ્ટ્રીય',
     'international': 'આંતરરાષ્ટ્રીય',
     'deposit': 'અમાનત',
+    'principal': 'મૂલધન',
+    'proposal': 'પ્રસ્તા൱',
   },
   'en': {
     'title': 'AnnaData (ai)\u2120',
@@ -855,6 +876,8 @@ export const langData: LangDataType = {
     'national': 'National',
     'international': 'International',
     'deposit': 'Deposit',
+    'principal': 'Principal',
+    'proposal': 'Proposal',
   },
   'ne': {
     'title': 'अन्नाडाटा (ai)\u2120',
@@ -925,6 +948,8 @@ export const langData: LangDataType = {
     'national': 'राष्ट्रिय',
     'international': 'अन्तर्राष्ट्रिय',
     'deposit': 'अमानत',
+    'principal': 'मूलधन',
+    'proposal': 'प्रस्ताव',
   },
   'brx': {
     'title': 'अन्नदाता (ai)\u2120',
@@ -995,6 +1020,8 @@ export const langData: LangDataType = {
     'national': 'राष्ट्रिय',
     'international': 'अन्तर्राष्ट्रिय',
     'deposit': 'अमानत',
+    'principal': 'मूलधन',
+    'proposal': 'सलाह',
   },
   'gom': {
     'title': 'अन्नदाता (ai)\u2120',
@@ -1065,6 +1092,8 @@ export const langData: LangDataType = {
     'national': 'राष्ट्रीय',
     'international': 'आंतरराष्ट्रीय',
     'deposit': 'अमानत',
+    'principal': 'मुळ्धन',
+    'proposal': 'आनी सल्लो',
   },
   'sa': {
     'title': 'अन्नदाता (ai)\u2120',
@@ -1135,6 +1164,8 @@ export const langData: LangDataType = {
     'national': 'राष्ट्रीयः',
     'international': 'अन्ताराष्ट्रियः',
     'deposit': 'अमानत',
+    'principal': 'मूलधनम्',
+    'proposal': 'आनी सल्लो',
   },
   'ks': {
     'title': 'اَنَدٲتا (ai)\u2120',
@@ -1205,6 +1236,8 @@ export const langData: LangDataType = {
     'national': 'قَومی',
     'international': 'بین الاقوٲمی',
     'deposit': 'آمنٹ',
+    'principal': 'اَصل رَقَم',
+    'proposal': 'پیشکش',
   },
   'si': {
     'title': 'අන්නදාත (ai)\u2120',
@@ -1275,6 +1308,8 @@ export const langData: LangDataType = {
     'national': 'ජාතික',
     'international': 'ජාත්‍යන්තර',
     'deposit': 'අමනත',
+    'principal': 'මූලධනය',
+    'proposal': 'ආයුබෝවන්! අද මට ඔබට කෙසේ උදව් කළ හැකිද?',
   },
   'mai':{
     'title': '𑂃𑂢𑂹𑂢𑂠𑂰𑂞𑂰 (ai)™',  
@@ -1345,6 +1380,8 @@ export const langData: LangDataType = {
     'national': '𑂩𑂰𑂮𑂹𑂗𑂩𑂲𑂨',
     'international': '𑂃𑂢𑂹𑂞𑂩𑂩𑂰𑂮𑂹𑂗𑂩𑂲𑂨',
     'deposit': '𑂃𑂧𑂰𑂢𑂞',
+    'principal': 'اَصل رقم',
+    'proposal': 'پیشکش',
   },
   'mni': {
     'title': 'ꯑꯟꯅꯗꯇꯥ (ai)\u2120',
@@ -1415,6 +1452,8 @@ export const langData: LangDataType = {
     'national': 'ꯅꯦꯁꯅꯦꯜ',
     'international': 'ꯏꯟꯇꯔꯅꯦꯁꯅꯦꯜ',
     'deposit': 'ꯑꯃꯥꯅꯠ',
+    'principal': 'ꯃꯨꯜꯗꯥꯟ',
+    'proposal': 'প্ৰস্তাৱ',
   },
   'sd': {
     'title': 'اناداتا۔ (ai)\u2120',
@@ -1485,6 +1524,8 @@ export const langData: LangDataType = {
     'national': 'قومي',
     'international': 'بين الاقوامي',
     'deposit': 'اَمانَت',
+    'principal': 'اَصل رقم',
+    'proposal': 'پيشڪش',
   },
   'ur': {
     'title': 'اناداتا۔(ai)\u2120',
@@ -1555,6 +1596,8 @@ export const langData: LangDataType = {
     'national': 'قومی',
     'international': 'بین الاقوامی',
     'deposit': 'اَمانَت',
+    'principal': 'اَصل رقم',
+    'proposal': 'تجویز',
   },
   'fr': {
     'title': 'AnnaData (ai)\u2120',
@@ -1625,6 +1668,8 @@ export const langData: LangDataType = {
     'national': 'National',
     'international': 'International',
     'deposit': 'Dépôt',
+    'principal': 'Principal',
+    'proposal': 'Proposal',
   },
   'pt': {
     'title': 'AnnaData (ai)\u2120',
@@ -1695,6 +1740,8 @@ export const langData: LangDataType = {
     'national': 'Nacional',
     'international': 'Internacional',
     'deposit': 'Depósito',
+    'principal': 'Principal',
+    'proposal': 'Proposal',
   },
   'es': {
     'title': 'AnnaData (ai)\u2120',
@@ -1765,6 +1812,8 @@ export const langData: LangDataType = {
     'national': 'Nacional',
     'international': 'Internacional',
     'deposit': 'Depósito',
+    'principal': 'Principal',
+    'proposal': 'Proposal',
   },
   'de': {
     'title': 'AnnaData (ai)\u2120',
@@ -1835,6 +1884,8 @@ export const langData: LangDataType = {
     'national': 'National',
     'international': 'International',
     'deposit': 'Deposit',
+    'principal': 'Kapital',
+    'proposal': 'Proposal',
   },
   'he': {
     'title': 'אנאדאטה (ai)\u2120',
@@ -1904,7 +1955,9 @@ export const langData: LangDataType = {
     'local': 'מקומי',
     'national': 'לאומי',
     'international': 'בינלאומי',
-    'deposit':'הַפְקָדָה'
+    'deposit':'הַפְקָדָה',
+    'principal': 'קרן',
+    'proposal': 'הצעה',
   },
   'th': {
     'title': 'แอนนาเดต้า (ai)\u2120',
@@ -1975,6 +2028,8 @@ export const langData: LangDataType = {
     'national': 'ระดับชาติ',
     'international': 'นานาชาติ',
     'deposit': 'ฝากเงิน',
+    'principal': 'เงินต้น',
+    'proposal': 'ข้อเสนอ',
   },
   'tr': {
     'title': 'AnnaData (ai)\u2120',
@@ -2045,6 +2100,8 @@ export const langData: LangDataType = {
     'national': 'ulusal',
     'international': 'uluslararası',
     'deposit': 'Yatırım',
+    'principal': 'Ana Para',
+    'proposal': 'Öneri',
   },
   'el': {
     'title': 'AnnaData (ai)\u2120',
@@ -2115,6 +2172,8 @@ export const langData: LangDataType = {
     'national': 'εθνικός',
     'international': 'διεθνής',
     'deposit': 'Χρηματοδότηση',
+    'principal': 'Κεφάλαιο',
+    'proposal': 'Πρόταση',
   },
   'ru': {
     'title': 'АннаДата (ai)\u2120',
@@ -2185,6 +2244,8 @@ export const langData: LangDataType = {
     'national': 'национальный',
     'international': 'международный',
     'deposit': 'Депозит',
+    'principal': 'Основной капитал',
+    'proposal': 'Предложение',
   },
   'uk': {
     'title': 'АннаДата (ai)\u2120',
@@ -2255,6 +2316,8 @@ export const langData: LangDataType = {
     'national': 'національний',
     'international': 'міжнародний', 
     'deposit': 'Депозит',
+    'principal': 'Основний капітал',
+    'proposal': 'Пропозиція',
   },
   'pl': {
     'title': 'AnnaData (ai)\u2120',
@@ -2325,6 +2388,8 @@ export const langData: LangDataType = {
     'national': 'krajowy',
     'international': 'międzynarodowy',
     'deposit': 'Depozyt',
+    'principal': 'Kapitał',
+    'proposal': 'Propozycja',
   },
   'ko': {
     'title': '안나데이터 (ai)\u2120',
@@ -2395,6 +2460,8 @@ export const langData: LangDataType = {
     'national': '국가의',
     'international': '국제적인',
     'deposit':'위탁',
+    'principal':'원금',
+    'proposal': '제안',
   },
   'ja': {
     'title': 'アナデータ (ai)\u2120',
@@ -2465,6 +2532,8 @@ export const langData: LangDataType = {
     'national': '国の（くにの）',
     'international': '国際的な（こくさいてきな）',
     'deposit':'預金',
+    'principal': '元金',
+    'proposal': '提案',
   },
   'zh': {
     'title': '安娜数据 (ai)\u2120',
@@ -2534,7 +2603,9 @@ export const langData: LangDataType = {
     'local': '本地',
     'national': '国家',
     'international': '国际',
-    'deposit':'存款'
+    'deposit':'存款',
+    'principal':'本金',
+    'proposal': '建议',
   }
 };
   
