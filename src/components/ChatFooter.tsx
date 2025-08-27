@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SpeechRecognition } from '@capawesome-team/capacitor-speech-recognition';
 import '../css/style.css';
 import '../css/icons.min.css';
 import ChatService from '../services/ChatService';
@@ -43,6 +44,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
   const [isSending, setIsSending] = useState<boolean>(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
 
   // Check authentication status on component mount (for UI display purposes only)
   useEffect(() => {
@@ -72,10 +74,132 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
     // In a real app, this would open the camera
   };
 
-  const handleMicClick = (): void => {
-    console.log('Mic icon clicked');
-    // This would trigger voice-to-text functionality
-  };
+  // Initialize speech recognition listeners on component mount
+  useEffect(() => {
+    const setupSpeechRecognition = async () => {
+      try {
+        // Check if speech recognition is available
+        const { isAvailable } = await SpeechRecognition.isAvailable();
+        console.log(' Speech recognition available:', isAvailable);
+        
+        if (isAvailable) {
+          // Set up listeners
+          SpeechRecognition.addListener('start', () => {
+            console.log(' Speech recognition started');
+            setIsRecording(true);
+          });
+          
+          SpeechRecognition.addListener('end', () => {
+            console.log(' Speech recognition ended');
+            setIsRecording(false);
+          });
+          
+          SpeechRecognition.addListener('error', (event) => {
+            console.error(' Speech recognition error:', event);
+            setIsRecording(false);
+          });
+          
+          SpeechRecognition.addListener('partialResult', (event) => {
+            console.log('🎤 Partial result received:', event);
+            if (event.result && event.result.trim()) {
+              console.log('🎤 Partial transcript:', event.result);
+              setMessage(event.result);
+            }
+          });
+          
+          SpeechRecognition.addListener('result', (event) => {
+            console.log('🎤 Final result received:', event);
+            if (event.result && event.result.trim()) {
+              console.log('🎤 Final transcript:', event.result);
+              setMessage(event.result);
+              alert('Transcript: ' + event.result);
+            } else {
+              console.log('🎤 Empty final result');
+              alert('No speech detected. Please try speaking louder or check your microphone.');
+            }
+          });
+          
+          SpeechRecognition.addListener('speechStart', () => {
+            console.log('🎤 User started speaking');
+            alert('Speech detected! Keep speaking...');
+          });
+          
+          SpeechRecognition.addListener('speechEnd', () => {
+            console.log('🎤 User stopped speaking');
+          });
+        }
+      } catch (error) {
+        console.error('🎤 Error setting up speech recognition:', error);
+      }
+    };
+    
+    setupSpeechRecognition();
+    
+    // Cleanup listeners on unmount
+    return () => {
+      SpeechRecognition.removeAllListeners();
+    };
+  }, []);
+
+  // Update your handleMicClick function to add more debugging
+  const handleMicClick = useCallback(async (): Promise<void> => {
+    console.log('🎤 MIC CLICKED! Testing recording...');
+    
+    try {
+      // Check if already recording
+      if (isRecording) {
+        console.log(' Stopping recording...');
+        await SpeechRecognition.stopListening();
+        setIsRecording(false);
+        return;
+      }
+
+      // Check permissions
+      console.log('🔒 Checking permissions...');
+      const { audioRecording, speechRecognition, recordAudio } = await SpeechRecognition.checkPermissions();
+      console.log('🔒 Permission result:', { audioRecording, speechRecognition, recordAudio });
+      
+      // Check if we have the required permissions
+      const hasAudioPermission = audioRecording === 'granted' || recordAudio === 'granted';
+      const hasSpeechPermission = speechRecognition === 'granted' || recordAudio === 'granted';
+      
+      if (!hasAudioPermission || !hasSpeechPermission) {
+        console.log('🔒 Requesting permissions...');
+        const permissionResult = await SpeechRecognition.requestPermissions({
+          permissions: ['audioRecording', 'speechRecognition'],
+        });
+        console.log(' Permission request result:', permissionResult);
+        
+        const finalAudioPermission = permissionResult.audioRecording === 'granted' || permissionResult.recordAudio === 'granted';
+        const finalSpeechPermission = permissionResult.speechRecognition === 'granted' || permissionResult.recordAudio === 'granted';
+        
+        if (!finalAudioPermission || !finalSpeechPermission) {
+          alert('Microphone permission is required for speech recognition');
+          return;
+        }
+      }
+
+      // Start recording with minimal configuration
+      console.log('🎙️ Starting recording...');
+      await SpeechRecognition.startListening({
+        language: 'en-US',
+        silenceThreshold: 10000, // 10 seconds
+        enableFormatting: false, // Disable formatting
+        partialResults: true,
+        popup: false,
+      });
+      
+      console.log('✅ Recording started successfully!');
+      setIsRecording(true);
+      
+      // Show user feedback
+      alert('Recording started! Please speak now...');
+      
+    } catch (error) {
+      console.error('❌ Error in mic click:', error);
+      alert('Error: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  }, [isRecording]);
 
   // Fix: Remove the isConnected check and just try to connect directly
   const sendMessageViaWebSocket = async (messageText: string, timestamp: string): Promise<boolean> => {

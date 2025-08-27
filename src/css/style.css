@@ -552,3 +552,46 @@ body {
     background-color: #333;
     transform: scale(0.95);
 }
+
+/* TTS Icon Styles */
+.tts-icon {
+  font-size: 1.2em;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.tts-icon:hover {
+  color: #007bff;
+  transform: scale(1.1);
+}
+
+.tts-icon.speaking {
+  color: #28a745;
+  animation: pulse 1.5s infinite;
+}
+
+/* Recording state for mic icon */
+.mic-icon.recording {
+  color: #dc3545;
+  animation: pulse 1.5s infinite;
+}
+
+/* Pulse animation */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Adjust left-icons spacing for the new TTS button */
+.left-icons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

@@ -20,6 +20,7 @@ def capacitor_pods
   pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
   pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
   pod 'CapawesomeTeamCapacitorDatetimePicker', :path => '../../node_modules/@capawesome-team/capacitor-datetime-picker'
+  pod 'CapawesomeTeamCapacitorSpeechRecognition', :path => '../../node_modules/@capawesome-team/capacitor-speech-recognition'
 end
 
 target 'App' do

@@ -30,10 +30,15 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 }) => {
   const { t } = useTranslation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [hasError, setHasError] = useState<boolean>(false);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = (): void => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    try {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } catch (error) {
+      console.error('Error scrolling to bottom:', error);
+    }
   };
 
   useEffect(() => {
@@ -176,6 +181,23 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     </div>
   );
 
+  // Error boundary for message rendering
+  const renderMessageSafely = (message: Message): React.ReactElement => {
+    try {
+      return renderMessage(message);
+    } catch (error) {
+      console.error('Error rendering message:', error);
+      setHasError(true);
+      return (
+        <div key={message.id} className="message bot-message error-message">
+          <div className="message-content">
+            Error rendering message. Please try again.
+          </div>
+        </div>
+      );
+    }
+  };
+
   const renderLoadingAnimation = (): React.ReactElement | null => {
     if (!isLoading) return null;
     
@@ -194,7 +216,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           className={`chat-messages ${messages.length === 0 ? 'welcome-only' : ''}`}
         >
           {/* Add a conditional welcome message */}
-          {messages.length === 0 ? renderWelcomeMessage() : messages.map(renderMessage)}
+          {messages.length === 0 ? renderWelcomeMessage() : messages.map(renderMessageSafely)}
           <div ref={messagesEndRef} />
         </div>
       </div>

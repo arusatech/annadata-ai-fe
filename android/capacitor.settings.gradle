@@ -28,3 +28,6 @@ project(':capacitor-status-bar').projectDir = new File('../node_modules/@capacit
 
 include ':capawesome-team-capacitor-datetime-picker'
 project(':capawesome-team-capacitor-datetime-picker').projectDir = new File('../node_modules/@capawesome-team/capacitor-datetime-picker/android')
+
+include ':capawesome-team-capacitor-speech-recognition'
+project(':capawesome-team-capacitor-speech-recognition').projectDir = new File('../node_modules/@capawesome-team/capacitor-speech-recognition/android')
