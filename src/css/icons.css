@@ -74,3 +74,24 @@
 .icon-mic:hover {
   background-color: rgba(0, 0, 0, 0.1);
 }
+
+/* Camera icon specific styles for one-click functionality */
+.icon-camera {
+  cursor: pointer;
+  padding: 8px;
+  /* border-radius: 50%; */
+  transition: all 0.2s ease;
+  font-size: 1.2rem;
+  color: #ffffff;
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.icon-camera:hover {
+  background-color: rgba(0, 123, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.icon-camera:active {
+  transform: scale(0.95);
+  background-color: rgba(0, 123, 255, 0.3);
+}

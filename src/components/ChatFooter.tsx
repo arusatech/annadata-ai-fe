@@ -69,6 +69,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recordingState, setRecordingState] = useState<'mic' | 'stop' | 'send'>('mic');
   const [partialTranscript, setPartialTranscript] = useState<string>('');
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState<boolean>(false);
   
   // Photo attachments state
   const [photoAttachments, setPhotoAttachments] = useState<PhotoAttachment[]>([]);
@@ -92,6 +93,43 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
       }
     };
     checkAuth();
+  }, []);
+
+  // Keyboard detection for mobile devices
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        const viewportHeight = window.innerHeight;
+        const windowHeight = window.outerHeight;
+        const keyboardHeight = windowHeight - viewportHeight;
+        
+        // If keyboard height is significant, consider it open
+        setIsKeyboardOpen(keyboardHeight > 150);
+      }
+    };
+
+    const handleVisualViewportChange = () => {
+      if (window.visualViewport) {
+        const keyboardHeight = window.innerHeight - window.visualViewport.height;
+        setIsKeyboardOpen(keyboardHeight > 150);
+      }
+    };
+
+    // Listen for resize events (keyboard show/hide)
+    window.addEventListener('resize', handleResize);
+    
+    // Listen for visual viewport changes (more reliable for keyboard detection)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleVisualViewportChange);
+      }
+    };
   }, []);
 
   // Debug effect to monitor message state changes
@@ -539,9 +577,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
         // Add files to attachments
         setFileAttachments(prev => [...prev, ...newFileAttachments]);
         
-        // Update message text to show files are attached
-        const fileText = `📎 Files attached: ${newFileAttachments.map(f => f.name).join(', ')}`;
-        setMessage(prev => prev ? `${prev}\n${fileText}` : fileText);
+        // Don't update message text - just show the attachment preview
         
         console.log('✅ Files attached to input:', newFileAttachments);
       }
@@ -552,10 +588,19 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
     }
   };
 
-  // Enhanced camera button click handler
+  /**
+   * One-click camera button handler - directly captures and attaches JPEG
+   * 
+   * This function provides a streamlined camera experience:
+   * - No prompts or source selection
+   * - Direct camera capture
+   * - No editing interface
+   * - Automatically attaches JPEG to the message
+   * - Optimized quality and size for chat
+   */
   const handleCameraClick = async (): Promise<void> => {
     try {
-      console.log('📸 Camera button clicked');
+      console.log('📸 One-click camera button clicked');
       
       // Check camera permissions first
       const permissions = await CameraService.checkPermissions();
@@ -569,55 +614,42 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
         }
       }
 
-      // Take photo with camera or select from gallery
-      const photo = await CameraService.takePhoto({
-        quality: 80, // Good quality for chat
-        allowEditing: true, // Allow user to crop/edit
-        saveToGallery: false, // Don't save to gallery automatically
-        width: 1200, // Reasonable size for chat
+      // Direct camera capture - no prompts, no editing, just capture JPEG
+      const photo = await CameraService.capturePhotoDirectly({
+        quality: 85, // Good quality for chat
+        width: 1200, // Optimized size for chat
         height: 1200
       });
 
-      console.log('✅ Photo captured:', photo);
-
-      // Create file object for the photo
-      const photoFile = {
-        name: `photo_${Date.now()}.${photo.format}`,
-        size: 0, // Will be updated when we get the blob
-        type: `image/${photo.format}`,
-        path: photo.path,
-        webPath: photo.webPath,
-        lastModified: Date.now()
-      };
+      console.log('✅ Photo captured directly:', photo);
 
       // Get blob for size calculation
+      let photoSize = 0;
       try {
         const blob = await CameraService.getPhotoAsBlob(photo);
-        photoFile.size = blob.size;
+        photoSize = blob.size;
       } catch (error) {
         console.warn('⚠️ Could not get photo blob for size calculation:', error);
       }
 
-      // Create message object with photo attachment
-      const photoMessageObj = {
+      // Create photo attachment object
+      const photoAttachment: PhotoAttachment = {
         id: `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        text: `📸 Photo: ${photoFile.name}`,
-        sender: 'user' as const,
-        time: new Date().toLocaleTimeString(),
-        timestamp: new Date().toISOString(),
-        attachments: [photoFile]
+        photo: photo,
+        name: `annadata_${Date.now()}.jpeg`,
+        size: photoSize,
+        type: 'image/jpeg'
       };
 
-      // Add photo message to chat
-      setMessages(prevMessages => [...prevMessages, photoMessageObj]);
+      // Add photo to attachments
+      setPhotoAttachments(prev => [...prev, photoAttachment]);
       
-      console.log('✅ Photo message added to chat');
-
-      // Optionally, you can also send the photo to your backend here
-      // await uploadPhotoToServer(photo);
+      // Don't update message text - just show the attachment preview
+      
+      console.log('✅ Photo attached to input:', photoAttachment);
 
     } catch (error: any) {
-      console.error('❌ Error in camera click:', error);
+      console.error('❌ Error in one-click camera:', error);
       
       // Handle specific error cases
       if (error.message?.includes('User cancelled')) {
@@ -670,9 +702,9 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
 
       // Create photo attachment object
       const photoAttachment: PhotoAttachment = {
-        id: `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `annadata_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         photo: photo,
-        name: `photo_${Date.now()}.${photo.format}`,
+        name: `annadata_${Date.now()}.${photo.format}`,
         size: photoSize,
         type: `image/${photo.format}`
       };
@@ -680,9 +712,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
       // Add photo to attachments
       setPhotoAttachments(prev => [...prev, photoAttachment]);
       
-      // Update message text to show photo is attached
-      const photoText = `📷 Photo attached: ${photoAttachment.name}`;
-      setMessage(prev => prev ? `${prev}\n${photoText}` : photoText);
+      // Don't update message text - just show the attachment preview
       
       console.log('✅ Photo attached to input:', photoAttachment);
 
@@ -706,26 +736,12 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
   const removePhotoAttachment = (photoId: string): void => {
     setPhotoAttachments(prev => prev.filter(photo => photo.id !== photoId));
     
-    // Update message text to remove photo reference
-    setMessage(prev => {
-      const lines = prev.split('\n');
-      const filteredLines = lines.filter(line => !line.includes('📷 Photo attached:'));
-      return filteredLines.join('\n');
-    });
-    
     console.log('🗑️ Photo attachment removed:', photoId);
   };
 
   // Remove file attachment
   const removeFileAttachment = (fileId: string): void => {
     setFileAttachments(prev => prev.filter(file => file.id !== fileId));
-    
-    // Update message text to remove file reference
-    setMessage(prev => {
-      const lines = prev.split('\n');
-      const filteredLines = lines.filter(line => !line.includes('📎 Files attached:'));
-      return filteredLines.join('\n');
-    });
     
     console.log('🗑️ File attachment removed:', fileId);
   };
@@ -951,11 +967,21 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
   const handleInputFocus = (): void => {
     setIsInputFocused(true);
     updateButtonState();
+    
+    // On mobile, assume keyboard will open when input is focused
+    if (window.innerWidth <= 768) {
+      setTimeout(() => setIsKeyboardOpen(true), 300);
+    }
   };
 
   const handleInputBlur = (): void => {
     setIsInputFocused(false);
     updateButtonState();
+    
+    // On mobile, assume keyboard will close when input loses focus
+    if (window.innerWidth <= 768) {
+      setTimeout(() => setIsKeyboardOpen(false), 300);
+    }
   };
 
   // Handle right action click (mic, stop, or send)
@@ -1029,7 +1055,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
   const buttonConfig = getButtonIcon();
 
   return (
-    <div className="chat-footer">
+    <div className={`chat-footer ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
       {/* Photo attachments preview */}
       {photoAttachments.length > 0 && (
         <div className="photo-attachments-preview">
@@ -1131,6 +1157,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
                 onClick={handleCameraClick}
                 role="button"
                 tabIndex={0}
+                title="Take photo (one-click camera)"
                 onKeyDown={(e: React.KeyboardEvent) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();

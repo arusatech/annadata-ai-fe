@@ -70,6 +70,28 @@
   pointer-events: all;
 }
 
+/* Keyboard handling styles */
+.chat-footer {
+  transition: transform 0.3s ease;
+}
+
+.chat-footer.keyboard-open {
+  transform: translateY(-50vh);
+}
+
+/* Ensure input stays visible when keyboard is open */
+.chat-input-container {
+  position: relative;
+  z-index: 1000;
+}
+
+/* Mobile-specific keyboard handling */
+@media (max-width: 768px) {
+  .chat-footer.keyboard-open {
+    transform: translateY(-40vh);
+  }
+}
+
 .message {
   margin: 8px 0;
   padding: 12px 16px;

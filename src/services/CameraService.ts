@@ -1,5 +1,5 @@
 // src/services/CameraService.ts
-import { Camera, CameraResultType, CameraSource, PermissionStatus } from '@capacitor/camera';
+import { Camera, CameraResultType, CameraSource, PermissionStatus, CameraDirection } from '@capacitor/camera';
 
 export interface CameraPhoto {
   path: string;
@@ -17,7 +17,7 @@ export interface CameraOptions {
   width?: number;
   height?: number;
   correctOrientation?: boolean;
-  direction?: 'REAR' | 'FRONT';
+  direction?: CameraDirection;
   presentationStyle?: 'fullscreen' | 'popover';
 }
 
@@ -44,15 +44,15 @@ export class CameraService {
       console.log('📸 Taking photo with options:', finalOptions);
       const image = await Camera.getPhoto(finalOptions);
       
-      console.log('✅ Photo captured successfully:', {
-        path: image.path,
-        webPath: image.webPath,
-        format: image.format
-      });
+              console.log('✅ Photo captured successfully:', {
+          path: image.path || 'unknown',
+          webPath: image.webPath,
+          format: image.format
+        });
       
       return {
-        path: image.path,
-        webPath: image.webPath,
+        path: image.path || '',
+        webPath: image.webPath || '',
         format: image.format || 'jpeg',
         exif: image.exif
       };
@@ -77,7 +77,7 @@ export class CameraService {
       console.log(`✅ Selected ${result.photos.length} photos`);
       
       return result.photos.map(photo => ({
-        path: photo.path,
+        path: photo.path || '',
         webPath: photo.webPath,
         format: photo.format || 'jpeg',
         exif: photo.exif
@@ -183,6 +183,47 @@ export class CameraService {
       return formData;
     } catch (error) {
       console.error('❌ Error creating FormData:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * One-click camera capture - directly takes photo with camera and returns JPEG
+   * No prompt, no editing, just capture and return
+   */
+  static async capturePhotoDirectly(options: CameraOptions = {}): Promise<CameraPhoto> {
+    const defaultOptions = {
+      quality: 85, // Good quality for chat
+      allowEditing: false, // No editing for one-click
+      resultType: CameraResultType.Uri,
+      source: CameraSource.Camera, // Force camera only
+      saveToGallery: false,
+      correctOrientation: true,
+      width: 1200, // Optimized for chat
+      height: 1200,
+      format: 'jpeg' // Force JPEG format
+    };
+
+    const finalOptions = { ...defaultOptions, ...options };
+    
+    try {
+      console.log('📸 Direct camera capture with options:', finalOptions);
+      const image = await Camera.getPhoto(finalOptions);
+      
+      console.log('✅ Photo captured directly:', {
+        path: image.path || 'unknown',
+        webPath: image.webPath,
+        format: image.format
+      });
+      
+      return {
+        path: image.path || '',
+        webPath: image.webPath || '',
+        format: 'jpeg', // Always return as JPEG
+        exif: image.exif
+      };
+    } catch (error) {
+      console.error('❌ Direct camera capture error:', error);
       throw error;
     }
   }
