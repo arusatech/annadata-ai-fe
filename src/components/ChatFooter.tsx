@@ -6,6 +6,7 @@ import ChatService from '../services/ChatService';
 import AuthService from '../services/AuthService';
 import { SpeechRecognitionService } from '../services/SpeechService';
 import { fileService, FileType } from '../services/FileService';
+import { CameraService, CameraPhoto } from '../services/CameraService';
 
 // Type definitions
 interface Message {
@@ -39,6 +40,26 @@ interface ErrorMessageObj {
   isError: boolean;
 }
 
+// Add interface for photo attachment
+interface PhotoAttachment {
+  id: string;
+  photo: CameraPhoto;
+  name: string;
+  size: number;
+  type: string;
+}
+
+// Add interface for file attachment
+interface FileAttachment {
+  id: string;
+  file: any; // File object from FileService
+  name: string;
+  size: number;
+  type: string;
+  path: string;
+  webPath?: string;
+}
+
 const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) => {
   const { t, i18n } = useTranslation();
   const [message, setMessage] = useState<string>('');
@@ -48,6 +69,12 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recordingState, setRecordingState] = useState<'mic' | 'stop' | 'send'>('mic');
   const [partialTranscript, setPartialTranscript] = useState<string>('');
+  
+  // Photo attachments state
+  const [photoAttachments, setPhotoAttachments] = useState<PhotoAttachment[]>([]);
+  
+  // NEW: Add state for file attachments
+  const [fileAttachments, setFileAttachments] = useState<FileAttachment[]>([]);
   
   // Speech service reference
   const speechServiceRef = useRef<SpeechRecognitionService | null>(null);
@@ -469,9 +496,11 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
     return fileMessageObj;
   };
 
-  // Handle attach button click
+  // Enhanced attach button click handler
   const handleAttachClick = async (): Promise<void> => {
     try {
+      console.log('📎 Attach button clicked');
+      
       // Check permissions first
       const permissions = await fileService.checkPermissions();
       if (permissions.readExternalStorage !== 'granted') {
@@ -483,7 +512,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
       }
 
       // Show file picker for all supported types
-      await fileService.pickFiles({
+      const result = await fileService.pickFiles({
         types: [
           ...fileService.getMimeTypeMappings()[FileType.IMAGES],
           ...fileService.getMimeTypeMappings()[FileType.DOCUMENTS],
@@ -492,34 +521,302 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
         limit: 5, // Allow up to 5 files
         readData: false
       });
+
+      console.log('✅ Files selected:', result);
+
+      // Process selected files
+      if (result.files && result.files.length > 0) {
+        const newFileAttachments: FileAttachment[] = result.files.map((file: any) => ({
+          id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          file: file,
+          name: file.name || `file_${Date.now()}`,
+          size: file.size || 0,
+          type: file.type || 'application/octet-stream',
+          path: file.path,
+          webPath: file.webPath
+        }));
+
+        // Add files to attachments
+        setFileAttachments(prev => [...prev, ...newFileAttachments]);
+        
+        // Update message text to show files are attached
+        const fileText = `📎 Files attached: ${newFileAttachments.map(f => f.name).join(', ')}`;
+        setMessage(prev => prev ? `${prev}\n${fileText}` : fileText);
+        
+        console.log('✅ Files attached to input:', newFileAttachments);
+      }
+
     } catch (error) {
       console.error('❌ Error in attach click:', error);
       addErrorMessage('Failed to open file picker');
     }
   };
 
-  // Handle camera button click
+  // Enhanced camera button click handler
   const handleCameraClick = async (): Promise<void> => {
     try {
-      // Check permissions first
-      const permissions = await fileService.checkPermissions();
-      if (permissions.readExternalStorage !== 'granted') {
-        const permissionResult = await fileService.requestPermissions();
-        if (permissionResult.readExternalStorage !== 'granted') {
-          addErrorMessage('Camera permission is required');
+      console.log('📸 Camera button clicked');
+      
+      // Check camera permissions first
+      const permissions = await CameraService.checkPermissions();
+      if (permissions.camera !== 'granted' && permissions.camera !== 'limited') {
+        console.log('🔐 Requesting camera permissions...');
+        const permissionResult = await CameraService.requestPermissions();
+        
+        if (permissionResult.camera !== 'granted' && permissionResult.camera !== 'limited') {
+          addErrorMessage('Camera permission is required to take photos. Please grant permission in device settings.');
           return;
         }
       }
 
-      // Show image picker specifically for camera/photo selection
-      await fileService.pickImages({
-        limit: 1,
-        skipTranscoding: true,
-        readData: false
+      // Take photo with camera or select from gallery
+      const photo = await CameraService.takePhoto({
+        quality: 80, // Good quality for chat
+        allowEditing: true, // Allow user to crop/edit
+        saveToGallery: false, // Don't save to gallery automatically
+        width: 1200, // Reasonable size for chat
+        height: 1200
       });
-    } catch (error) {
+
+      console.log('✅ Photo captured:', photo);
+
+      // Create file object for the photo
+      const photoFile = {
+        name: `photo_${Date.now()}.${photo.format}`,
+        size: 0, // Will be updated when we get the blob
+        type: `image/${photo.format}`,
+        path: photo.path,
+        webPath: photo.webPath,
+        lastModified: Date.now()
+      };
+
+      // Get blob for size calculation
+      try {
+        const blob = await CameraService.getPhotoAsBlob(photo);
+        photoFile.size = blob.size;
+      } catch (error) {
+        console.warn('⚠️ Could not get photo blob for size calculation:', error);
+      }
+
+      // Create message object with photo attachment
+      const photoMessageObj = {
+        id: `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        text: `📸 Photo: ${photoFile.name}`,
+        sender: 'user' as const,
+        time: new Date().toLocaleTimeString(),
+        timestamp: new Date().toISOString(),
+        attachments: [photoFile]
+      };
+
+      // Add photo message to chat
+      setMessages(prevMessages => [...prevMessages, photoMessageObj]);
+      
+      console.log('✅ Photo message added to chat');
+
+      // Optionally, you can also send the photo to your backend here
+      // await uploadPhotoToServer(photo);
+
+    } catch (error: any) {
       console.error('❌ Error in camera click:', error);
-      addErrorMessage('Failed to open camera/photo picker');
+      
+      // Handle specific error cases
+      if (error.message?.includes('User cancelled')) {
+        console.log('👤 User cancelled photo capture');
+        return;
+      }
+      
+      if (error.message?.includes('permission')) {
+        addErrorMessage('Camera permission denied. Please enable camera access in device settings.');
+      } else {
+        addErrorMessage('Failed to capture photo. Please try again.');
+      }
+    }
+  };
+
+  // Enhanced camera-only click handler
+  const handleCameraOnlyClick = async (): Promise<void> => {
+    try {
+      console.log('📸 Camera-only button clicked');
+      
+      // Check camera permissions first
+      const permissions = await CameraService.checkPermissions();
+      if (permissions.camera !== 'granted' && permissions.camera !== 'limited') {
+        console.log('🔐 Requesting camera permissions...');
+        const permissionResult = await CameraService.requestPermissions();
+        
+        if (permissionResult.camera !== 'granted' && permissionResult.camera !== 'limited') {
+          addErrorMessage('Camera permission is required to take photos. Please grant permission in device settings.');
+          return;
+        }
+      }
+
+      // Take photo with camera only
+      const photo = await CameraService.takePhotoWithCamera({
+        quality: 80,
+        allowEditing: true,
+        saveToGallery: false
+      });
+
+      console.log('✅ Photo captured:', photo);
+
+      // Get blob for size calculation
+      let photoSize = 0;
+      try {
+        const blob = await CameraService.getPhotoAsBlob(photo);
+        photoSize = blob.size;
+      } catch (error) {
+        console.warn('⚠️ Could not get photo blob for size calculation:', error);
+      }
+
+      // Create photo attachment object
+      const photoAttachment: PhotoAttachment = {
+        id: `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        photo: photo,
+        name: `photo_${Date.now()}.${photo.format}`,
+        size: photoSize,
+        type: `image/${photo.format}`
+      };
+
+      // Add photo to attachments
+      setPhotoAttachments(prev => [...prev, photoAttachment]);
+      
+      // Update message text to show photo is attached
+      const photoText = `📷 Photo attached: ${photoAttachment.name}`;
+      setMessage(prev => prev ? `${prev}\n${photoText}` : photoText);
+      
+      console.log('✅ Photo attached to input:', photoAttachment);
+
+    } catch (error: any) {
+      console.error('❌ Error in camera-only click:', error);
+      
+      if (error.message?.includes('User cancelled')) {
+        console.log('👤 User cancelled photo capture');
+        return;
+      }
+      
+      if (error.message?.includes('permission')) {
+        addErrorMessage('Camera permission denied. Please enable camera access in device settings.');
+      } else {
+        addErrorMessage('Failed to capture photo. Please try again.');
+      }
+    }
+  };
+
+  // Remove photo attachment
+  const removePhotoAttachment = (photoId: string): void => {
+    setPhotoAttachments(prev => prev.filter(photo => photo.id !== photoId));
+    
+    // Update message text to remove photo reference
+    setMessage(prev => {
+      const lines = prev.split('\n');
+      const filteredLines = lines.filter(line => !line.includes('📷 Photo attached:'));
+      return filteredLines.join('\n');
+    });
+    
+    console.log('🗑️ Photo attachment removed:', photoId);
+  };
+
+  // Remove file attachment
+  const removeFileAttachment = (fileId: string): void => {
+    setFileAttachments(prev => prev.filter(file => file.id !== fileId));
+    
+    // Update message text to remove file reference
+    setMessage(prev => {
+      const lines = prev.split('\n');
+      const filteredLines = lines.filter(line => !line.includes('📎 Files attached:'));
+      return filteredLines.join('\n');
+    });
+    
+    console.log('🗑️ File attachment removed:', fileId);
+  };
+
+  // Enhanced photo upload function
+  const uploadPhotoToServer = async (photo: CameraPhoto): Promise<void> => {
+    try {
+      console.log('📤 Starting photo upload...');
+      
+      const formData = await CameraService.createPhotoFormData(photo, 'image');
+      
+      // Add metadata
+      formData.append('timestamp', new Date().toISOString());
+      formData.append('format', photo.format);
+      
+      // Send to your backend
+      const response = await fetch('/api/upload-photo', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ Photo uploaded successfully:', result);
+      
+    } catch (error) {
+      console.error('❌ Photo upload failed:', error);
+      throw error; // Re-throw to be handled by caller
+    }
+  };
+
+  // Enhanced file upload function
+  const uploadFileToServer = async (attachment: FileAttachment): Promise<void> => {
+    try {
+      console.log('📤 Starting file upload...', attachment.name);
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // If we have the file object, use it directly
+      if (attachment.file && attachment.file.blob) {
+        formData.append('file', attachment.file.blob, attachment.name);
+      } else {
+        // Otherwise, try to fetch the file from path
+        try {
+          const response = await fetch(attachment.path);
+          const blob = await response.blob();
+          formData.append('file', blob, attachment.name);
+        } catch (fetchError) {
+          console.error('❌ Could not fetch file from path:', fetchError);
+          throw new Error('Could not read file data');
+        }
+      }
+      
+      // Add metadata
+      formData.append('timestamp', new Date().toISOString());
+      formData.append('type', attachment.type);
+      formData.append('size', attachment.size.toString());
+      
+      // Send to your backend
+      const response = await fetch('/api/upload-file', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ File uploaded successfully:', result);
+      
+    } catch (error) {
+      console.error('❌ File upload failed:', error);
+      throw error; // Re-throw to be handled by caller
+    }
+  };
+
+  // Select multiple photos
+  const handleMultiplePhotosClick = async (): Promise<void> => {
+    try {
+      const photos = await CameraService.selectMultiplePhotos(3); // Max 3 photos
+      
+      // Handle multiple photos...
+      console.log('📸 Multiple photos:', photos);
+    } catch (error) {
+      console.error('❌ Multiple photos error:', error);
+      addErrorMessage('Failed to select photos');
     }
   };
 
@@ -549,7 +846,8 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement> | { preventDefault: () => void }): Promise<void> => {
     event.preventDefault();
     
-    if (!message.trim() || isSending) {
+    // Don't submit if no message and no attachments
+    if ((!message.trim() && photoAttachments.length === 0 && fileAttachments.length === 0) || isSending) {
       return;
     }
 
@@ -559,7 +857,8 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
     // Create user message object
     const userMessageObj: UserMessageObj = {
       id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      text: userMessage,
+      text: userMessage || (photoAttachments.length > 0 || fileAttachments.length > 0 ? 
+        `📤 Sent ${photoAttachments.length + fileAttachments.length} attachment(s)` : ''),
       sender: 'user',
       time: new Date().toLocaleTimeString(),
       timestamp: timestamp
@@ -576,22 +875,60 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
     updateButtonIcon();
 
     try {
-      const success: boolean = await sendMessageViaWebSocket(userMessage, timestamp);
-      
-      if (!success) {
-        console.error(`❌ [CHAT DEBUG] WebSocket send failed`);
+      // Upload photos first if any
+      if (photoAttachments.length > 0) {
+        console.log('📤 Uploading photos to server...');
         
-        const errorMessageObj: ErrorMessageObj = {
-          id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          text: 'Unable to send message. Please check your connection and try again.',
-          sender: 'bot',
-          time: new Date().toLocaleTimeString(),
-          timestamp: new Date().toISOString(),
-          isError: true
-        };
-        
-        setMessages(prevMessages => [...prevMessages, errorMessageObj]);
+        for (const attachment of photoAttachments) {
+          try {
+            await uploadPhotoToServer(attachment.photo);
+            console.log('✅ Photo uploaded:', attachment.name);
+          } catch (error) {
+            console.error('❌ Failed to upload photo:', attachment.name, error);
+            addErrorMessage(`Failed to upload photo: ${attachment.name}`);
+          }
+        }
       }
+
+      // Upload files if any
+      if (fileAttachments.length > 0) {
+        console.log('📤 Uploading files to server...');
+        
+        for (const attachment of fileAttachments) {
+          try {
+            await uploadFileToServer(attachment);
+            console.log('✅ File uploaded:', attachment.name);
+          } catch (error) {
+            console.error('❌ Failed to upload file:', attachment.name, error);
+            addErrorMessage(`Failed to upload file: ${attachment.name}`);
+          }
+        }
+      }
+
+      // Send text message via WebSocket
+      if (userMessage.trim()) {
+        const success: boolean = await sendMessageViaWebSocket(userMessage, timestamp);
+        
+        if (!success) {
+          console.error(`❌ [CHAT DEBUG] WebSocket send failed`);
+          
+          const errorMessageObj: ErrorMessageObj = {
+            id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            text: 'Unable to send message. Please check your connection and try again.',
+            sender: 'bot',
+            time: new Date().toLocaleTimeString(),
+            timestamp: new Date().toISOString(),
+            isError: true
+          };
+          
+          setMessages(prevMessages => [...prevMessages, errorMessageObj]);
+        }
+      }
+
+      // Clear all attachments after successful send
+      setPhotoAttachments([]);
+      setFileAttachments([]);
+      
     } catch (error: any) {
       console.error('Error sending message:', error);
       
@@ -676,12 +1013,104 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
     }
   };
 
+  // Helper function to get file icon based on type
+  const getFileIcon = (fileType: string): string => {
+    if (fileType.startsWith('image/')) return '🖼️';
+    if (fileType.startsWith('video/')) return '🎥';
+    if (fileType.startsWith('audio/')) return '🎵';
+    if (fileType.includes('pdf')) return '📄';
+    if (fileType.includes('word') || fileType.includes('document')) return '📝';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return '📊';
+    if (fileType.includes('powerpoint') || fileType.includes('presentation')) return '📽️';
+    if (fileType.includes('text')) return '📄';
+    return '📎';
+  };
+
   const buttonConfig = getButtonIcon();
 
   return (
     <div className="chat-footer">
-      <div className="chat-input-container">
-        <form onSubmit={handleFormSubmit}>
+      {/* Photo attachments preview */}
+      {photoAttachments.length > 0 && (
+        <div className="photo-attachments-preview">
+          <div className="attachments-header">
+            <span>📷 {photoAttachments.length} photo(s) attached</span>
+            <button 
+              className="clear-all-btn"
+              onClick={() => setPhotoAttachments([])}
+              type="button"
+            >
+              Clear All
+            </button>
+          </div>
+          <div className="attachments-list">
+            {photoAttachments.map((attachment) => (
+              <div key={attachment.id} className="attachment-item">
+                <img 
+                  src={attachment.photo.webPath} 
+                  alt={attachment.name}
+                  className="attachment-thumbnail"
+                />
+                <div className="attachment-info">
+                  <span className="attachment-name">{attachment.name}</span>
+                  <span className="attachment-size">
+                    {(attachment.size / 1024).toFixed(1)} KB
+                  </span>
+                </div>
+                <button 
+                  className="remove-attachment-btn"
+                  onClick={() => removePhotoAttachment(attachment.id)}
+                  type="button"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* File attachments preview */}
+      {fileAttachments.length > 0 && (
+        <div className="file-attachments-preview">
+          <div className="attachments-header">
+            <span>📎 {fileAttachments.length} file(s) attached</span>
+            <button 
+              className="clear-all-btn"
+              onClick={() => setFileAttachments([])}
+              type="button"
+            >
+              Clear All
+            </button>
+          </div>
+          <div className="attachments-list">
+            {fileAttachments.map((attachment) => (
+              <div key={attachment.id} className="attachment-item">
+                <div className="file-icon">
+                  {getFileIcon(attachment.type)}
+                </div>
+                <div className="attachment-info">
+                  <span className="attachment-name">{attachment.name}</span>
+                  <span className="attachment-size">
+                    {(attachment.size / 1024).toFixed(1)} KB
+                  </span>
+                </div>
+                <button 
+                  className="remove-attachment-btn"
+                  onClick={() => removeFileAttachment(attachment.id)}
+                  type="button"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Existing form content */}
+      <form onSubmit={handleSubmit} className="chat-input-form">
+        <div className="chat-input-container">
           <div className="input-group">
             {/* Left side icons */}
             <div className="left-icons">
@@ -752,8 +1181,8 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
               ></i>
             </div>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 };
