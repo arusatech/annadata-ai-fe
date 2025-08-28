@@ -27,6 +27,7 @@
     "@capacitor/status-bar": "7.0.2",
     "@capawesome-team/capacitor-datetime-picker": "^7.0.1",
     "@capawesome-team/capacitor-speech-recognition": "^7.4.1",
+    "@capawesome/capacitor-file-picker": "^7.2.0",
     "@ionic/cli": "^7.2.1",
     "@ionic/lab": "^3.2.15",
     "@ionic/react": "^8.5.0",

@@ -31,3 +31,6 @@ project(':capawesome-team-capacitor-datetime-picker').projectDir = new File('../
 
 include ':capawesome-team-capacitor-speech-recognition'
 project(':capawesome-team-capacitor-speech-recognition').projectDir = new File('../node_modules/@capawesome-team/capacitor-speech-recognition/android')
+
+include ':capawesome-capacitor-file-picker'
+project(':capawesome-capacitor-file-picker').projectDir = new File('../node_modules/@capawesome/capacitor-file-picker/android')

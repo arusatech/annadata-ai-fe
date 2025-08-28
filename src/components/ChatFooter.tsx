@@ -5,6 +5,7 @@ import '../css/icons.min.css';
 import ChatService from '../services/ChatService';
 import AuthService from '../services/AuthService';
 import { SpeechRecognitionService } from '../services/SpeechService';
+import { fileService, FileType } from '../services/FileService';
 
 // Type definitions
 interface Message {
@@ -374,13 +375,152 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
   // Determine which icon to show based on input state
   const shouldShowSendIcon: boolean = isInputFocused || message.trim().length > 0;
 
-  // Placeholder functions for icon clicks
-  const handleAttachClick = (): void => {
-    console.log('Attach icon clicked');
+  // Initialize file service
+  useEffect(() => {
+    const initializeFileService = async () => {
+      try {
+        await fileService.initialize();
+        
+        // Set up file service event listeners
+        fileService.addCustomListener('filesPicked', (result: any) => {
+          console.log('📁 Files picked:', result.files);
+          handleFilesSelected(result.files);
+        });
+        
+        fileService.addCustomListener('error', (error: any) => {
+          console.error('❌ File picker error:', error);
+          addErrorMessage(`File selection error: ${error.error?.message || 'Unknown error'}`);
+        });
+        
+        console.log('✅ File service initialized successfully');
+      } catch (error) {
+        console.error('❌ Failed to initialize file service:', error);
+        addErrorMessage('File picker initialization failed');
+      }
+    };
+
+    initializeFileService();
+
+    // Cleanup on unmount
+    return () => {
+      fileService.cleanup();
+    };
+  }, []);
+
+  // Handle files selected from file picker
+  const handleFilesSelected = (files: any[]) => {
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    // Validate files
+    const validFiles = files.filter(file => {
+      const isValidSize = fileService.validateFileSize(file, 10); // 10MB limit
+      const isValidType = fileService.validateFileType(file, [
+        ...fileService.getMimeTypeMappings()[FileType.IMAGES],
+        ...fileService.getMimeTypeMappings()[FileType.DOCUMENTS],
+        ...fileService.getMimeTypeMappings()[FileType.AUDIO]
+      ]);
+
+      if (!isValidSize) {
+        addErrorMessage(`File ${file.name} is too large (max 10MB)`);
+        return false;
+      }
+
+      if (!isValidType) {
+        addErrorMessage(`File type not supported: ${file.name}`);
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length === 0) {
+      return;
+    }
+
+    // Create file attachment message
+    const fileMessage = createFileAttachmentMessage(validFiles);
+    setMessages(prevMessages => [...prevMessages, fileMessage]);
+
+    // TODO: Upload files to server and get URLs
+    // For now, just show the file names
+    console.log('📎 Files to upload:', validFiles);
   };
 
-  const handleCameraClick = (): void => {
-    console.log('Camera icon clicked');
+  // Create file attachment message
+  const createFileAttachmentMessage = (files: any[]) => {
+    const fileList = files.map(file => ({
+      name: file.name,
+      size: fileService.formatFileSize(file.size),
+      type: file.mimeType,
+      extension: fileService.getFileExtension(file)
+    }));
+
+    const fileMessageObj = {
+      id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      text: `📎 Attached ${files.length} file(s):\n${fileList.map(f => `• ${f.name} (${f.size})`).join('\n')}`,
+      sender: 'user' as const,
+      time: new Date().toLocaleTimeString(),
+      timestamp: new Date().toISOString(),
+      attachments: files
+    };
+    
+    return fileMessageObj;
+  };
+
+  // Handle attach button click
+  const handleAttachClick = async (): Promise<void> => {
+    try {
+      // Check permissions first
+      const permissions = await fileService.checkPermissions();
+      if (permissions.readExternalStorage !== 'granted') {
+        const permissionResult = await fileService.requestPermissions();
+        if (permissionResult.readExternalStorage !== 'granted') {
+          addErrorMessage('Storage permission is required. Please grant permission in device settings and try again.');
+          return;
+        }
+      }
+
+      // Show file picker for all supported types
+      await fileService.pickFiles({
+        types: [
+          ...fileService.getMimeTypeMappings()[FileType.IMAGES],
+          ...fileService.getMimeTypeMappings()[FileType.DOCUMENTS],
+          ...fileService.getMimeTypeMappings()[FileType.AUDIO]
+        ],
+        limit: 5, // Allow up to 5 files
+        readData: false
+      });
+    } catch (error) {
+      console.error('❌ Error in attach click:', error);
+      addErrorMessage('Failed to open file picker');
+    }
+  };
+
+  // Handle camera button click
+  const handleCameraClick = async (): Promise<void> => {
+    try {
+      // Check permissions first
+      const permissions = await fileService.checkPermissions();
+      if (permissions.readExternalStorage !== 'granted') {
+        const permissionResult = await fileService.requestPermissions();
+        if (permissionResult.readExternalStorage !== 'granted') {
+          addErrorMessage('Camera permission is required');
+          return;
+        }
+      }
+
+      // Show image picker specifically for camera/photo selection
+      await fileService.pickImages({
+        limit: 1,
+        skipTranscoding: true,
+        readData: false
+      });
+    } catch (error) {
+      console.error('❌ Error in camera click:', error);
+      addErrorMessage('Failed to open camera/photo picker');
+    }
   };
 
   // Send message via WebSocket
