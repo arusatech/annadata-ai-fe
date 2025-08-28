@@ -205,7 +205,8 @@ body {
 }
 
 .icon-mic,
-.send-icon {
+.send-icon,
+.icon-stop {
     position: absolute;
     right: 0.25rem;
     top: 50%;
@@ -572,6 +573,12 @@ body {
 
 /* Recording state for mic icon */
 .mic-icon.recording {
+  color: #dc3545;
+  animation: pulse 1.5s infinite;
+}
+
+/* Recording state for stop icon */
+.icon-stop.recording {
   color: #dc3545;
   animation: pulse 1.5s infinite;
 }

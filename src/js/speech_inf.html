@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Recognition Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: #075e54;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .chat-header .avatar {
+            width: 40px;
+            height: 40px;
+            background: #128c7e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .chat-header .info h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chat-header .info p {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #e5ddd5;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="%23ffffff" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="%23ffffff" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.user {
+            align-items: flex-end;
+        }
+
+        .message.bot {
+            align-items: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 16px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .message.user .message-bubble {
+            background: #dcf8c6;
+            color: #000;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot .message-bubble {
+            background: white;
+            color: #000;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #667781;
+            margin-top: 4px;
+            padding: 0 8px;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .typing-indicator.show {
+            display: flex;
+        }
+
+        .typing-bubble {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #b3b3b3;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .chat-input-container {
+            background: #f0f2f5;
+            padding: 15px 20px;
+            border-top: 1px solid #e9edef;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: white;
+            border: 1px solid #e9edef;
+            border-radius: 25px;
+            padding: 12px 20px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+            resize: none;
+            min-height: 20px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .chat-input:focus {
+            border-color: #25d366;
+        }
+
+        .chat-input:empty::before {
+            content: "Type a message...";
+            color: #667781;
+        }
+
+        .action-button {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: #25d366;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .action-button:hover {
+            background: #128c7e;
+            transform: scale(1.05);
+        }
+
+        .action-button:active {
+            transform: scale(0.95);
+        }
+
+        .action-button.recording {
+            background: #dc3545;
+            animation: pulse 1s infinite;
+        }
+
+        .action-button.recording:hover {
+            background: #c82333;
+        }
+
+        .action-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .language-selector {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 8px;
+            padding: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .language-selector select {
+            padding: 4px 8px;
+            border: 1px solid #e9edef;
+            border-radius: 4px;
+            font-size: 12px;
+            background: white;
+        }
+
+        .status-indicator {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .status-indicator.show {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .chat-header {
+                padding: 10px 15px;
+            }
+            
+            .chat-messages {
+                padding: 15px;
+            }
+            
+            .chat-input-container {
+                padding: 10px 15px;
+            }
+            
+            .message-bubble {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="language-selector">
+        <select id="languageSelect">
+            <option value="en-US">🇺🇸 English</option>
+            <option value="en-GB">🇬�� English UK</option>
+            <option value="es-ES">🇪🇸 Spanish</option>
+            <option value="fr-FR">��🇷 French</option>
+            <option value="de-DE">��🇪 German</option>
+            <option value="it-IT">🇮🇹 Italian</option>
+            <option value="pt-BR">🇧�� Portuguese</option>
+            <option value="ja-JP">���� Japanese</option>
+            <option value="ko-KR">��🇷 Korean</option>
+            <option value="zh-CN">🇨🇳 Chinese</option>
+        </select>
+    </div>
+
+    <div class="status-indicator" id="statusIndicator">
+        Ready to listen
+    </div>
+
+    <div class="chat-header">
+        <div class="avatar">��</div>
+        <div class="info">
+            <h2>Speech Recognition</h2>
+            <p>Tap the mic to start speaking</p>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        <div class="message bot">
+            <div class="message-bubble">
+                Hi! I'm your speech recognition assistant. Tap the microphone button to start speaking, and I'll convert your speech to text.
+            </div>
+            <div class="message-time">Just now</div>
+        </div>
+    </div>
+
+    <div class="typing-indicator" id="typingIndicator">
+        <div class="typing-bubble">
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+      
+...
+
+Let me reevaluate and take a different approach.
+
+_(It may take a moment for the assistant to restart.)_
+
+
+</div>
+        </div>
+    </div>
+
+    <div class="chat-input-container">
+        <div class="chat-input" contenteditable="true" id="chatInput"></div>
+        <button class="action-button" id="actionButton">
+            🎤
+        </button>
+    </div>
+
+    <script type="module">
+        import { SpeechRecognitionService } from './component/speech.js';
+
+        class WhatsAppSpeechChat {
+            constructor() {
+                this.speechService = new SpeechRecognitionService();
+                this.isInitialized = false;
+                this.isListening = false;
+                this.currentText = '';
+                this.state = 'mic'; // 'mic', 'stop', 'send'
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.initializeSpeechService();
+            }
+
+            initializeElements() {
+                this.chatInput = document.getElementById('chatInput');
+                this.actionButton = document.getElementById('actionButton');
+                this.chatMessages = document.getElementById('chatMessages');
+                this.languageSelect = document.getElementById('languageSelect');
+                this.statusIndicator = document.getElementById('statusIndicator');
+                this.typingIndicator = document.getElementById('typingIndicator');
+            }
+
+            bindEvents() {
+                this.actionButton.addEventListener('click', () => this.handleActionButtonClick());
+                this.chatInput.addEventListener('input', () => this.handleInputChange());
+                this.chatInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (this.state === 'send') {
+                            this.sendMessage();
+                        }
+                    }
+                });
+            }
+
+            async initializeSpeechService() {
+                try {
+                    await this.speechService.initialize();
+                    this.isInitialized = true;
+                    this.showStatus('Ready to listen');
+                    this.setupSpeechCallbacks();
+                } catch (error) {
+                    this.showStatus('Initialization failed', true);
+                    this.addBotMessage(`Error: ${error.message}`);
+                }
+            }
+
+            setupSpeechCallbacks() {
+                this.speechService.onResult = (result) => {
+                    this.currentText = result;
+                    this.chatInput.textContent = result;
+                    this.updateButtonState();
+                };
+
+                // Custom event listeners
+                if (this.speechService.addCustomListener) {
+                    this.speechService.addCustomListener('start', () => {
+                        this.showStatus('Listening...');
+                        this.showTyping();
+                    });
+
+                    this.speechService.addCustomListener('speechStart', () => {
+                        this.showStatus('You are speaking...');
+                    });
+
+                    this.speechService.addCustomListener('speechEnd', () => {
+                        this.showStatus('Processing...');
+                    });
+
+                    this.speechService.addCustomListener('partialResult', (event) => {
+                        this.chatInput.textContent = event.result;
+                        this.updateButtonState();
+                    });
+
+                    this.speechService.addCustomListener('error', (event) => {
+                        this.showStatus('Error occurred', true);
+                        this.addBotMessage(`Error: ${event.message}`);
+                        this.resetToMicState();
+                    });
+
+                    this.speechService.addCustomListener('end', () => {
+                        this.hideTyping();
+                        this.isListening = false;
+                        this.state = this.chatInput.textContent.trim() ? 'send' : 'mic';
+                        this.updateButtonIcon();
+                        this.showStatus('Ready to listen');
+                    });
+                }
+            }
+
+            async handleActionButtonClick() {
+                if (!this.isInitialized) {
+                    this.addBotMessage('Speech service not initialized');
+                    return;
+                }
+
+                switch (this.state) {
+                    case 'mic':
+                        await this.startListening();
+                        break;
+                    case 'stop':
+                        await this.stopListening();
+                        break;
+                    case 'send':
+                        this.sendMessage();
+                        break;
+                }
+            }
+
+            async startListening() {
+                const language = this.languageSelect.value;
+                
+                try {
+                    await this.speechService.startListening(language);
+                    this.isListening = true;
+                    this.state = 'stop';
+                    this.updateButtonIcon();
+                    this.chatInput.textContent = '';
+                    this.showStatus(`Listening in ${language}...`);
+                } catch (error) {
+                    this.showStatus('Failed to start listening', true);
+                    this.addBotMessage(`Failed to start listening: ${error.message}`);
+                }
+            }
+
+            async stopListening() {
+                try {
+                    await this.speechService.stopListening();
+                    this.isListening = false;
+                    this.showStatus('Stopped listening');
+                } catch (error) {
+                    this.addBotMessage(`Failed to stop listening: ${error.message}`);
+                    this.resetToMicState();
+                }
+            }
+
+            sendMessage() {
+                const text = this.chatInput.textContent.trim();
+                if (text) {
+                    this.addUserMessage(text);
+                    this.chatInput.textContent = '';
+                    this.currentText = '';
+                    this.resetToMicState();
+                    
+                    // Simulate bot response
+                    setTimeout(() => {
+                        this.addBotMessage(`I heard: "${text}"`);
+                    }, 500);
+                }
+            }
+
+            handleInputChange() {
+                this.updateButtonState();
+            }
+
+            updateButtonState() {
+                if (this.isListening) {
+                    this.state = 'stop';
+                } else {
+                    this.state = this.chatInput.textContent.trim() ? 'send' : 'mic';
+                }
+                this.updateButtonIcon();
+            }
+
+            updateButtonIcon() {
+                const icons = {
+                    'mic': '🎤',
+                    'stop': '⏹️',
+                    'send': '➤'
+                };
+                
+                this.actionButton.textContent = icons[this.state];
+                this.actionButton.className = 'action-button';
+                
+                if (this.state === 'stop') {
+                    this.actionButton.classList.add('recording');
+                }
+            }
+
+            resetToMicState() {
+                this.isListening = false;
+                this.state = 'mic';
+                this.updateButtonIcon();
+                this.hideTyping();
+            }
+
+            addUserMessage(text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message user';
+                messageDiv.innerHTML = `
+                    <div class="message-bubble">${text}</div>
+                    <div class="message-time">${this.getCurrentTime()}</div>
+                `;
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            addBotMessage(text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message bot';
+                messageDiv.innerHTML = `
+                    <div class="message-bubble">${text}</div>
+                    <div class="message-time">${this.getCurrentTime()}</div>
+                `;
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            showTyping() {
+                this.typingIndicator.classList.add('show');
+                this.scrollToBottom();
+            }
+
+            hideTyping() {
+                this.typingIndicator.classList.remove('show');
+            }
+
+            showStatus(message, isError = false) {
+                this.statusIndicator.textContent = message;
+                this.statusIndicator.style.background = isError ? 'rgba(220, 53, 69, 0.9)' : 'rgba(0, 0, 0, 0.8)';
+                this.statusIndicator.classList.add('show');
+                
+                setTimeout(() => {
+                    this.statusIndicator.classList.remove('show');
+                }, 3000);
+            }
+
+            getCurrentTime() {
+                return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+
+            scrollToBottom() {
+                setTimeout(() => {
+                    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                }, 100);
+            }
+        }
+
+        // Initialize the chat when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new WhatsAppSpeechChat();
+        });
+    </script>
+</body>
+</html>

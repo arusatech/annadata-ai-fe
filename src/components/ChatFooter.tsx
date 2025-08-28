@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SpeechRecognition } from '@capawesome-team/capacitor-speech-recognition';
 import '../css/style.css';
 import '../css/icons.min.css';
 import ChatService from '../services/ChatService';
 import AuthService from '../services/AuthService';
+import { SpeechRecognitionService } from '../services/SpeechService';
 
 // Type definitions
 interface Message {
@@ -39,14 +39,20 @@ interface ErrorMessageObj {
 }
 
 const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [message, setMessage] = useState<string>('');
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
   const [isSending, setIsSending] = useState<boolean>(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [recordingState, setRecordingState] = useState<'mic' | 'stop' | 'send'>('mic');
+  const [partialTranscript, setPartialTranscript] = useState<string>('');
+  
+  // Speech service reference
+  const speechServiceRef = useRef<SpeechRecognitionService | null>(null);
+  const isInitializedRef = useRef<boolean>(false);
 
-  // Check authentication status on component mount (for UI display purposes only)
+  // Check authentication status on component mount
   useEffect(() => {
     const checkAuth = async (): Promise<void> => {
       try {
@@ -60,157 +66,331 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
     checkAuth();
   }, []);
 
+  // Debug effect to monitor message state changes
+  useEffect(() => {
+    console.log('📝 Message state changed:', { 
+      message, 
+      partialTranscript, 
+      isRecording, 
+      recordingState,
+      messageLength: message.length 
+    });
+  }, [message, partialTranscript, isRecording, recordingState]);
+
+  // Initialize speech service
+  useEffect(() => {
+    const initializeSpeechService = async () => {
+      try {
+        speechServiceRef.current = new SpeechRecognitionService();
+        await speechServiceRef.current.initialize();
+        isInitializedRef.current = true;
+        
+        // Set up custom event listeners
+        setupSpeechCallbacks();
+        
+        console.log('✅ Speech service initialized successfully');
+      } catch (error) {
+        console.error('❌ Failed to initialize speech service:', error);
+        addErrorMessage('Speech recognition initialization failed');
+      }
+    };
+
+    initializeSpeechService();
+
+    // Cleanup on unmount
+    return () => {
+      if (speechServiceRef.current) {
+        speechServiceRef.current.cleanup();
+      }
+    };
+  }, []);
+
+  // Set up speech recognition callbacks
+  const setupSpeechCallbacks = () => {
+    if (!speechServiceRef.current) return;
+
+    // Handle final results
+    speechServiceRef.current.onResult = (result: string) => {
+      console.log('🎤 Final transcript received via onResult:', result);
+      if (result.trim()) {
+        setMessage(result);
+        setPartialTranscript('');
+        updateButtonState();
+      }
+    };
+
+    // Add custom listeners for UI feedback
+    speechServiceRef.current.addCustomListener('start', () => {
+      console.log('🎤 Recording started');
+      setIsRecording(true);
+      setRecordingState('stop');
+      setPartialTranscript('');
+      updateButtonIcon();
+    });
+
+    speechServiceRef.current.addCustomListener('speechStart', () => {
+      console.log('🗣️ User started speaking');
+      setPartialTranscript('');
+    });
+
+    speechServiceRef.current.addCustomListener('speechEnd', () => {
+      console.log('🔇 User stopped speaking');
+      // Clear the "Listening..." indicator when user stops speaking
+      if (partialTranscript === 'Listening...') {
+        setPartialTranscript('');
+      }
+    });
+
+    speechServiceRef.current.addCustomListener('partialResult', (event: any) => {
+      console.log('🔄 Partial result event received:', event);
+      
+      // Try multiple ways to get the partial result
+      let partialText = '';
+      
+      if (event.result && typeof event.result === 'string') {
+        partialText = event.result;
+      } else if (event.transcript && typeof event.transcript === 'string') {
+        partialText = event.transcript;
+      } else if (event.text && typeof event.text === 'string') {
+        partialText = event.text;
+      } else if (typeof event === 'string') {
+        partialText = event;
+      } else if (event && typeof event === 'object') {
+        // Try to find any string property
+        for (const key in event) {
+          if (typeof event[key] === 'string' && event[key].trim()) {
+            partialText = event[key];
+            break;
+          }
+        }
+      }
+      
+      if (partialText.trim()) {
+        console.log('🔄 Setting partial transcript:', partialText);
+        setPartialTranscript(partialText);
+        setMessage(partialText);
+      } else {
+        console.log('🔄 No valid partial result found');
+      }
+    });
+
+    // Add a visual indicator when user is speaking (since partial results may not work)
+    speechServiceRef.current.addCustomListener('speechStart', () => {
+      console.log('🗣️ User started speaking');
+      setPartialTranscript('Listening...');
+    });
+
+    speechServiceRef.current.addCustomListener('result', (event: any) => {
+      console.log('✅ Final result event received:', event);
+      
+      // Try multiple ways to get the final result
+      let finalText = '';
+      
+      if (event.result && typeof event.result === 'string') {
+        finalText = event.result;
+      } else if (event.transcript && typeof event.transcript === 'string') {
+        finalText = event.transcript;
+      } else if (event.text && typeof event.text === 'string') {
+        finalText = event.text;
+      } else if (typeof event === 'string') {
+        finalText = event;
+      } else if (event && typeof event === 'object') {
+        // Try to find any string property
+        for (const key in event) {
+          if (typeof event[key] === 'string' && event[key].trim()) {
+            finalText = event[key];
+            break;
+          }
+        }
+      }
+      
+      if (finalText.trim()) {
+        console.log('✅ Setting final transcript:', finalText);
+        setMessage(finalText);
+        setPartialTranscript('');
+        updateButtonState();
+      } else {
+        console.log('✅ No valid final result found');
+      }
+    });
+
+    speechServiceRef.current.addCustomListener('error', (event: any) => {
+      console.error('❌ Speech recognition error:', event);
+      setIsRecording(false);
+      setRecordingState('mic');
+      updateButtonIcon();
+      addErrorMessage(`Speech recognition error: ${event.message || 'Unknown error'}`);
+    });
+
+    speechServiceRef.current.addCustomListener('end', () => {
+      console.log('🛑 Recording session ended');
+      setIsRecording(false);
+      // Always show send icon when recording ends, regardless of message content
+      setRecordingState('send');
+      setPartialTranscript('');
+      updateButtonIcon();
+    });
+
+    speechServiceRef.current.addCustomListener('userStop', () => {
+      console.log('🛑 User manually stopped recording');
+      setIsRecording(false);
+      // Always show send icon when user stops recording
+      setRecordingState('send');
+      setPartialTranscript('');
+      updateButtonIcon();
+    });
+  };
+
+  // Language to speech recognition locale mapping
+  const getSpeechRecognitionLanguage = (languageCode: string): string => {
+    const speechLanguageMap: Record<string, string> = {
+      'en': 'en-US',
+      'hi': 'hi-IN',
+      'bn': 'bn-IN',
+      'ml': 'ml-IN',
+      'ta': 'ta-IN',
+      'te': 'te-IN',
+      'kn': 'kn-IN',
+      'gu': 'gu-IN',
+      'mr': 'mr-IN',
+      'pa': 'pa-IN',
+      'or': 'or-IN',
+      'as': 'as-IN',
+      'ne': 'ne-NP',
+      'si': 'si-LK',
+      'gom': 'gom-IN',
+      'mni': 'mni-IN',
+      'brx': 'brx-IN',
+      'ks': 'ks-IN',
+      'sd': 'sd-PK',
+      'ur': 'ur-PK',
+      'mai': 'mai-IN',
+      'fr': 'fr-FR',
+      'de': 'de-DE',
+      'es': 'es-ES',
+      'pt': 'pt-BR',
+      'it': 'it-IT',
+      'ru': 'ru-RU',
+      'pl': 'pl-PL',
+      'tr': 'tr-TR',
+      'uk': 'uk-UA',
+      'he': 'he-IL',
+      'el': 'el-GR',
+      'th': 'th-TH',
+      'ko': 'ko-KR',
+      'ja': 'ja-JP',
+      'zh': 'zh-CN',
+      'ar': 'ar-SA'
+    };
+    
+    const mappedLanguage = speechLanguageMap[languageCode] || 'en-US';
+    console.log(`🎤 Language mapping: ${languageCode} -> ${mappedLanguage}`);
+    return mappedLanguage;
+  };
+
+  // Handle microphone button click
+  const handleMicClick = useCallback(async (): Promise<void> => {
+    console.log('🎤 MIC CLICKED!');
+    
+    if (!isInitializedRef.current || !speechServiceRef.current) {
+      console.error('❌ Speech service not initialized');
+      addErrorMessage('Speech recognition not available');
+      return;
+    }
+
+    try {
+      if (isRecording) {
+        // Stop recording
+        console.log(' Stopping recording...');
+        await speechServiceRef.current.stopListening();
+      } else {
+        // Check microphone permissions first (only on web platform)
+        if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            console.log('✅ Microphone permission granted');
+            stream.getTracks().forEach(track => track.stop()); // Stop the test stream
+          } catch (permissionError) {
+            console.error('❌ Microphone permission denied:', permissionError);
+            addErrorMessage('Microphone permission is required for voice messages');
+            return;
+          }
+        } else {
+          console.log('🎤 Running on native platform - skipping web permission check');
+        }
+        
+        // Start recording
+        const currentLanguage = getSpeechRecognitionLanguage(i18n.language);
+        console.log(`🎙️ Starting recording with language: ${currentLanguage}`);
+        
+        await speechServiceRef.current.startListening(currentLanguage);
+      }
+    } catch (error) {
+      console.error('❌ Error in mic click:', error);
+      setIsRecording(false);
+      setRecordingState('mic');
+      updateButtonIcon();
+      addErrorMessage(`Failed to ${isRecording ? 'stop' : 'start'} recording`);
+    }
+  }, [isRecording, i18n.language]);
+
+  // Handle send button click
+  const handleSendClick = (): void => {
+    if (message.trim()) {
+      handleSubmit({ preventDefault: () => {} });
+    }
+  };
+
+  // Update button state based on current conditions
+  const updateButtonState = (): void => {
+    if (isRecording) {
+      setRecordingState('stop');
+    } else {
+      // When not recording, always show send icon if there's any content (including partial transcript)
+      setRecordingState((message.trim() || partialTranscript.trim()) ? 'send' : 'mic');
+    }
+    updateButtonIcon();
+  };
+
+  // Update button icon based on state
+  const updateButtonIcon = (): void => {
+    // This will be handled in the render method
+  };
+
+  // Add error message to chat
+  const addErrorMessage = (text: string): void => {
+    const errorMessageObj: ErrorMessageObj = {
+      id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      text,
+      sender: 'bot',
+      time: new Date().toLocaleTimeString(),
+      timestamp: new Date().toISOString(),
+      isError: true
+    };
+    
+    setMessages(prevMessages => [...prevMessages, errorMessageObj]);
+  };
+
   // Determine which icon to show based on input state
   const shouldShowSendIcon: boolean = isInputFocused || message.trim().length > 0;
 
   // Placeholder functions for icon clicks
   const handleAttachClick = (): void => {
     console.log('Attach icon clicked');
-    // In a real app, this would open a file picker
   };
 
   const handleCameraClick = (): void => {
     console.log('Camera icon clicked');
-    // In a real app, this would open the camera
   };
 
-  // Initialize speech recognition listeners on component mount
-  useEffect(() => {
-    const setupSpeechRecognition = async () => {
-      try {
-        // Check if speech recognition is available
-        const { isAvailable } = await SpeechRecognition.isAvailable();
-        console.log(' Speech recognition available:', isAvailable);
-        
-        if (isAvailable) {
-          // Set up listeners
-          SpeechRecognition.addListener('start', () => {
-            console.log(' Speech recognition started');
-            setIsRecording(true);
-          });
-          
-          SpeechRecognition.addListener('end', () => {
-            console.log(' Speech recognition ended');
-            setIsRecording(false);
-          });
-          
-          SpeechRecognition.addListener('error', (event) => {
-            console.error(' Speech recognition error:', event);
-            setIsRecording(false);
-          });
-          
-          SpeechRecognition.addListener('partialResult', (event) => {
-            console.log('🎤 Partial result received:', event);
-            if (event.result && event.result.trim()) {
-              console.log('🎤 Partial transcript:', event.result);
-              setMessage(event.result);
-            }
-          });
-          
-          SpeechRecognition.addListener('result', (event) => {
-            console.log('🎤 Final result received:', event);
-            if (event.result && event.result.trim()) {
-              console.log('🎤 Final transcript:', event.result);
-              setMessage(event.result);
-              alert('Transcript: ' + event.result);
-            } else {
-              console.log('🎤 Empty final result');
-              alert('No speech detected. Please try speaking louder or check your microphone.');
-            }
-          });
-          
-          SpeechRecognition.addListener('speechStart', () => {
-            console.log('🎤 User started speaking');
-            alert('Speech detected! Keep speaking...');
-          });
-          
-          SpeechRecognition.addListener('speechEnd', () => {
-            console.log('🎤 User stopped speaking');
-          });
-        }
-      } catch (error) {
-        console.error('🎤 Error setting up speech recognition:', error);
-      }
-    };
-    
-    setupSpeechRecognition();
-    
-    // Cleanup listeners on unmount
-    return () => {
-      SpeechRecognition.removeAllListeners();
-    };
-  }, []);
-
-  // Update your handleMicClick function to add more debugging
-  const handleMicClick = useCallback(async (): Promise<void> => {
-    console.log('🎤 MIC CLICKED! Testing recording...');
-    
-    try {
-      // Check if already recording
-      if (isRecording) {
-        console.log(' Stopping recording...');
-        await SpeechRecognition.stopListening();
-        setIsRecording(false);
-        return;
-      }
-
-      // Check permissions
-      console.log('🔒 Checking permissions...');
-      const { audioRecording, speechRecognition, recordAudio } = await SpeechRecognition.checkPermissions();
-      console.log('🔒 Permission result:', { audioRecording, speechRecognition, recordAudio });
-      
-      // Check if we have the required permissions
-      const hasAudioPermission = audioRecording === 'granted' || recordAudio === 'granted';
-      const hasSpeechPermission = speechRecognition === 'granted' || recordAudio === 'granted';
-      
-      if (!hasAudioPermission || !hasSpeechPermission) {
-        console.log('🔒 Requesting permissions...');
-        const permissionResult = await SpeechRecognition.requestPermissions({
-          permissions: ['audioRecording', 'speechRecognition'],
-        });
-        console.log(' Permission request result:', permissionResult);
-        
-        const finalAudioPermission = permissionResult.audioRecording === 'granted' || permissionResult.recordAudio === 'granted';
-        const finalSpeechPermission = permissionResult.speechRecognition === 'granted' || permissionResult.recordAudio === 'granted';
-        
-        if (!finalAudioPermission || !finalSpeechPermission) {
-          alert('Microphone permission is required for speech recognition');
-          return;
-        }
-      }
-
-      // Start recording with minimal configuration
-      console.log('🎙️ Starting recording...');
-      await SpeechRecognition.startListening({
-        language: 'en-US',
-        silenceThreshold: 10000, // 10 seconds
-        enableFormatting: false, // Disable formatting
-        partialResults: true,
-        popup: false,
-      });
-      
-      console.log('✅ Recording started successfully!');
-      setIsRecording(true);
-      
-      // Show user feedback
-      alert('Recording started! Please speak now...');
-      
-    } catch (error) {
-      console.error('❌ Error in mic click:', error);
-      alert('Error: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    }
-  }, [isRecording]);
-
-  // Fix: Remove the isConnected check and just try to connect directly
+  // Send message via WebSocket
   const sendMessageViaWebSocket = async (messageText: string, timestamp: string): Promise<boolean> => {
     try {
-      // Try to connect (ChatService will handle if already connected)
       const connected: boolean = await ChatService.connect();
       if (!connected) {
         return false;
       }
 
-      // Send message via WebSocket
       const success: boolean = await ChatService.sendChatMessage(messageText);
       
       if (success) {
@@ -250,16 +430,17 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
     
     // Clear input and set sending state
     setMessage('');
+    setPartialTranscript('');
     setIsSending(true);
+    setRecordingState('mic');
+    updateButtonIcon();
 
     try {
-      // Send message via WebSocket only
       const success: boolean = await sendMessageViaWebSocket(userMessage, timestamp);
       
       if (!success) {
         console.error(`❌ [CHAT DEBUG] WebSocket send failed`);
         
-        // Add error message to chat
         const errorMessageObj: ErrorMessageObj = {
           id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           text: 'Unable to send message. Please check your connection and try again.',
@@ -274,7 +455,6 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
     } catch (error: any) {
       console.error('Error sending message:', error);
       
-      // Add error message to chat
       const errorMessageObj: ErrorMessageObj = {
         id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         text: 'Sorry, there was an error sending your message. Please try again.',
@@ -293,28 +473,70 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
   // Handle input focus events
   const handleInputFocus = (): void => {
     setIsInputFocused(true);
+    updateButtonState();
   };
 
   const handleInputBlur = (): void => {
     setIsInputFocused(false);
+    updateButtonState();
   };
 
-  // Handle right action click (either mic or send)
+  // Handle right action click (mic, stop, or send)
   const handleRightActionClick = (): void => {
-    if (shouldShowSendIcon) {
-      handleSubmit({ preventDefault: () => {} });
-    } else {
-      handleMicClick();
+    switch (recordingState) {
+      case 'mic':
+        handleMicClick();
+        break;
+      case 'stop':
+        // When stop is clicked, stop recording and show send icon if there's text
+        handleMicClick();
+        break;
+      case 'send':
+        handleSendClick();
+        break;
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setMessage(e.target.value);
+    updateButtonState();
   };
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     handleSubmit(e);
   };
+
+  // Get button icon and class based on current state
+  const getButtonIcon = (): { icon: string; className: string; title: string } => {
+    switch (recordingState) {
+      case 'mic':
+        return {
+          icon: 'icon-mic',
+          className: 'mic-icon',
+          title: t('voice_message', 'Voice message')
+        };
+      case 'stop':
+        return {
+          icon: 'icon-stop',
+          className: 'stop-icon recording',
+          title: t('stop_recording', 'Stop recording')
+        };
+      case 'send':
+        return {
+          icon: 'icon-arrow-up',
+          className: `send-icon active ${isSending ? 'sending' : ''}`,
+          title: isSending ? t('sending', 'Sending...') : t('send', 'Send message')
+        };
+      default:
+        return {
+          icon: 'icon-mic',
+          className: 'mic-icon',
+          title: t('voice_message', 'Voice message')
+        };
+    }
+  };
+
+  const buttonConfig = getButtonIcon();
 
   return (
     <div className="chat-footer">
@@ -357,7 +579,9 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
               placeholder={
                 isSending 
                   ? t('sending', 'Sending...') 
-                  : t('hint', 'Type a message...')
+                  : partialTranscript 
+                    ? partialTranscript 
+                    : t('hint', 'Type a message...')
               }
               aria-label="Chat input"
               value={message}
@@ -367,43 +591,25 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
               disabled={isSending}
             />
             
-            {/* Right side actions - toggle between mic and send icons */}
+            {/* Right side actions - dynamic icon based on state */}
             <div className="right-actions">
-              {shouldShowSendIcon ? (
-                <i
-                  className={`icon-arrow-up send-icon ${shouldShowSendIcon ? 'active' : ''} ${isSending ? 'sending' : ''}`}
-                  onClick={handleRightActionClick}
-                  style={{ cursor: isSending ? 'not-allowed' : 'pointer' }}
-                  title={
-                    isSending 
-                      ? t('sending', 'Sending...') 
-                      : t('send', 'Send message')
+              <i
+                className={buttonConfig.icon + ' ' + buttonConfig.className}
+                onClick={handleRightActionClick}
+                style={{ 
+                  cursor: isSending ? 'not-allowed' : 'pointer',
+                  animation: recordingState === 'stop' ? 'pulse 1s infinite' : 'none'
+                }}
+                title={buttonConfig.title}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e: React.KeyboardEvent) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleRightActionClick();
                   }
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleRightActionClick();
-                    }
-                  }}
-                ></i>
-              ) : (
-                <i
-                  className="icon-mic mic-icon"
-                  onClick={handleRightActionClick}
-                  style={{ cursor: 'pointer' }}
-                  title={t('voice_message', 'Voice message')}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleRightActionClick();
-                    }
-                  }}
-                ></i>
-              )}
+                }}
+              ></i>
             </div>
           </div>
         </form>
