@@ -107,6 +107,7 @@
   color: rgb(34, 34, 34);
   margin-left: auto;
   border-bottom-right-radius: 4px;
+  max-width: 90%; /* Keep user messages at 70% width */
 }
 
 .bot-message {
@@ -114,6 +115,8 @@
   color: #000;
   margin-right: auto;
   border-bottom-left-radius: 4px;
+  max-width: 100%; /* Bot messages now occupy full width */
+  width: 100%; /* Ensure full width */
 }
 
 .error-message {
