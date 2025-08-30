@@ -13,6 +13,7 @@ dependencies {
     implementation project(':capacitor-app')
     implementation project(':capacitor-camera')
     implementation project(':capacitor-device')
+    implementation project(':capacitor-filesystem')
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-keyboard')
     implementation project(':capacitor-preferences')
@@ -21,6 +22,7 @@ dependencies {
     implementation project(':capawesome-team-capacitor-datetime-picker')
     implementation project(':capawesome-team-capacitor-speech-recognition')
     implementation project(':capawesome-capacitor-file-picker')
+    implementation project(':llama-cpp-capacitor')
 
 }
 

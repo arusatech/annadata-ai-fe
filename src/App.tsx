@@ -114,6 +114,7 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState<boolean>(false);
   const [isOffline, setIsOffline] = useState<boolean>(false);
+  const [selectedModel, setSelectedModel] = useState<string>('online'); // Default to online
 
   // Error boundary for the app
   const [hasError, setHasError] = useState<boolean>(false);
@@ -509,8 +510,16 @@ const App: React.FC = () => {
                 isOffline={isOffline}
                 onAuthStateChange={handleAuthStateChange}
               />
-        <ChatContainer messages={messages} />
-        <ChatFooter onSendMessage={handleSendMessage} setMessages={setMessages} />
+        <ChatContainer 
+          messages={messages} 
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
+        />
+        <ChatFooter 
+          onSendMessage={handleSendMessage} 
+          setMessages={setMessages}
+          selectedModel={selectedModel}
+        />
       </div>
     );
   } catch (error: any) {

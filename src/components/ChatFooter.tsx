@@ -7,6 +7,7 @@ import AuthService from '../services/AuthService';
 import { SpeechRecognitionService } from '../services/SpeechService';
 import { fileService, FileType } from '../services/FileService';
 import { CameraService, CameraPhoto } from '../services/CameraService';
+import LlamaService from '../services/LlamaService';
 
 // Type definitions
 interface Message {
@@ -21,6 +22,7 @@ interface Message {
 interface ChatFooterProps {
   onSendMessage?: (message: string) => void;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  selectedModel?: string; // Add this prop
 }
 
 interface UserMessageObj {
@@ -60,7 +62,7 @@ interface FileAttachment {
   webPath?: string;
 }
 
-const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) => {
+const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, selectedModel }) => {
   const { t, i18n } = useTranslation();
   const [message, setMessage] = useState<string>('');
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
@@ -80,6 +82,9 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
   // Speech service reference
   const speechServiceRef = useRef<SpeechRecognitionService | null>(null);
   const isInitializedRef = useRef<boolean>(false);
+
+  // Add LlamaService reference
+  const [llamaService] = useState(() => LlamaService);
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -836,7 +841,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
     }
   };
 
-  // Send message via WebSocket
+  // Send message via WebSocket (Online mode)
   const sendMessageViaWebSocket = async (messageText: string, timestamp: string): Promise<boolean> => {
     try {
       const connected: boolean = await ChatService.connect();
@@ -844,7 +849,8 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
         return false;
       }
 
-      const success: boolean = await ChatService.sendChatMessage(messageText);
+      // Pass the selected model to the ChatService
+      const success: boolean = await ChatService.sendChatMessage(messageText, selectedModel);
       
       if (success) {
         return true;
@@ -858,7 +864,74 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
     }
   };
 
-  // Enhanced function to handle form submission
+  // Process message locally using downloaded model (Offline mode)
+  const processMessageLocally = async (messageText: string, timestamp: string): Promise<boolean> => {
+    try {
+      // Early return if selectedModel is undefined
+      if (!selectedModel) {
+        console.error(`❌ [LOCAL DEBUG] No model selected`);
+        return false;
+      }
+
+      console.log(`🤖 [LOCAL DEBUG] Processing message locally with model: ${selectedModel}`);
+      
+      // Check if the selected model is downloaded
+      const model = llamaService.getModel(selectedModel);
+      if (!model || model.status !== 'downloaded') {
+        console.error(`❌ [LOCAL DEBUG] Model ${selectedModel} is not downloaded`);
+        return false;
+      }
+
+      // Load the model if not already loaded
+      try {
+        await llamaService.loadModel(selectedModel);
+        console.log(`✅ [LOCAL DEBUG] Model ${selectedModel} loaded successfully`);
+      } catch (error) {
+        console.error(`❌ [LOCAL DEBUG] Failed to load model ${selectedModel}:`, error);
+        return false;
+      }
+
+      // Generate response using the local model
+      const completionParams = {
+        prompt: messageText,
+        n_predict: 256,
+        temperature: 0.7,
+        top_p: 0.9,
+        stop: ['</s>', '<|end|>', '<|eot_id|>', '<|end_of_text|>', '<|im_end|>']
+      };
+
+      console.log(`🔄 [LOCAL DEBUG] Generating response for: "${messageText}"`);
+      
+      const result = await llamaService.completion(completionParams);
+      
+      // Check for response content in both text and content fields
+      const responseText = result.text || result.content || '';
+      
+      if (responseText.trim()) {
+        console.log(`✅ [LOCAL DEBUG] Local response generated:`, responseText);
+        
+        // Add bot response to messages
+        const botMessageObj = {
+          id: `bot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          text: responseText,
+          sender: 'bot' as const,
+          time: new Date().toLocaleTimeString(),
+          timestamp: new Date().toISOString()
+        };
+        
+        setMessages(prevMessages => [...prevMessages, botMessageObj]);
+        return true;
+      } else {
+        console.error(`❌ [LOCAL DEBUG] No response generated from local model`);
+        return false;
+      }
+    } catch (error: any) {
+      console.error(`❌ [LOCAL DEBUG] Local processing error:`, error);
+      return false;
+    }
+  };
+
+  // Enhanced function to handle form submission with dual-mode support
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement> | { preventDefault: () => void }): Promise<void> => {
     event.preventDefault();
     
@@ -921,16 +994,28 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages }) =
         }
       }
 
-      // Send text message via WebSocket
+      // Send text message based on selected mode
       if (userMessage.trim()) {
-        const success: boolean = await sendMessageViaWebSocket(userMessage, timestamp);
+        let success: boolean = false;
+        
+        if (selectedModel === 'online') {
+          // Online mode: Send to remote server
+          console.log(' [MODE DEBUG] Using online mode - sending to remote server');
+          success = await sendMessageViaWebSocket(userMessage, timestamp);
+        } else {
+          // Offline mode: Process locally
+          console.log(` [MODE DEBUG] Using offline mode - processing with local model: ${selectedModel}`);
+          success = await processMessageLocally(userMessage, timestamp);
+        }
         
         if (!success) {
-          console.error(`❌ [CHAT DEBUG] WebSocket send failed`);
+          console.error(`❌ [CHAT DEBUG] Message processing failed`);
           
           const errorMessageObj: ErrorMessageObj = {
             id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            text: 'Unable to send message. Please check your connection and try again.',
+            text: selectedModel === 'online' 
+              ? 'Unable to send message. Please check your connection and try again.'
+              : `Unable to process message with local model ${selectedModel}. Please try again.`,
             sender: 'bot',
             time: new Date().toLocaleTimeString(),
             timestamp: new Date().toISOString(),

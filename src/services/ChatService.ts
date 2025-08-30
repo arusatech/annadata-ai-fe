@@ -58,6 +58,7 @@ interface ChatMessage {
   content: string;
   timestamp: string;
   language: string;
+  model?: string; // Add this field
 }
 
 interface LangOptions {
@@ -446,7 +447,7 @@ class ChatService {
   }
 
   // Send a chat message
-  public async sendChatMessage(message: string): Promise<boolean> {
+  public async sendChatMessage(message: string, model?: string): Promise<boolean> {
     try {
       // Show loading animation
       loadingAnimation.show();
@@ -474,6 +475,7 @@ class ChatService {
         content: message,
         timestamp: new Date().toISOString(),
         language: languageName,
+        model: model, // Include the selected model
       };
 
       const result: boolean = this.publish(topic, JSON.stringify(messageObj));
