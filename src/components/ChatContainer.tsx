@@ -52,6 +52,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
+  const [deletingModel, setDeletingModel] = useState<string | null>(null);
 
   // Initialize llama service
   useEffect(() => {
@@ -91,12 +92,32 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         // Check if model is downloaded
         const model = llamaService.getModel(newModelId);
         if (model && model.status === 'downloaded') {
-          await llamaService.loadModel(newModelId);
-          console.log(`Model ${newModelId} loaded successfully`);
+          try {
+            await llamaService.loadModel(newModelId);
+            console.log(`Model ${newModelId} loaded successfully`);
+          } catch (error: any) {
+            // Check if it's an Android platform error
+            if (error.message && error.message.includes('not implemented on Android')) {
+              console.warn(`⚠️ Model ${newModelId} cannot be loaded on Android platform`);
+              // Don't show error message, just log it
+              return;
+            }
+            throw error; // Re-throw other errors
+          }
         } else {
           // Model not downloaded, download it automatically
           console.log(`Model ${newModelId} needs to be downloaded, starting download...`);
-          await handleModelDownload(newModelId);
+          try {
+            await handleModelDownload(newModelId);
+          } catch (error: any) {
+            // Check if it's an Android platform error
+            if (error.message && error.message.includes('not implemented on Android')) {
+              console.warn(`⚠️ Model ${newModelId} cannot be downloaded on Android platform`);
+              // Don't show error message, just log it
+              return;
+            }
+            throw error; // Re-throw other errors
+          }
         }
       } catch (error) {
         console.error(`Failed to load/download model ${newModelId}:`, error);
@@ -163,6 +184,48 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       setDownloadingModel(null);
       setDownloadProgress(0);
       setIsDownloading(false);
+    }
+  };
+
+  // Handle model deletion
+  const handleDeleteSelectedModel = async (): Promise<void> => {
+    if (currentSelectedModel === 'online') {
+      alert('Cannot delete online model');
+      return;
+    }
+
+    const model = downloadedModels.find(m => m.id === currentSelectedModel);
+    if (!model) {
+      alert('Model not found in downloaded models');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${model.name}"?\n\nThis will remove the model from all storage locations and cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setDeletingModel(currentSelectedModel);
+    try {
+      await llamaService.deleteModel(currentSelectedModel);
+      
+      // Update downloaded models list
+      setDownloadedModels(llamaService.getDownloadedModels());
+      
+      // Switch back to online mode if the deleted model was selected
+      if (onModelChange) {
+        onModelChange('online');
+      } else {
+        setLocalSelectedModel('online');
+      }
+      
+      console.log(`Model ${currentSelectedModel} deleted successfully`);
+    } catch (error) {
+      console.error(`Failed to delete model ${currentSelectedModel}:`, error);
+      alert(`Failed to delete model: ${error}`);
+    } finally {
+      setDeletingModel(null);
     }
   };
 
@@ -541,6 +604,21 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                     </option>
                   ))}
                 </select>
+              )}
+              {/* Delete button - shows when model dropdown is visible and a local model is selected */}
+              {shouldShowModelDropdown(message) && currentSelectedModel !== 'online' && (
+                <span className="icon-delete" 
+                  onClick={(event: React.MouseEvent<HTMLSpanElement>) => {
+                    event.stopPropagation();
+                    handleDeleteSelectedModel();
+                  }}
+                  title={deletingModel === currentSelectedModel ? "Deleting model..." : "Delete selected model"}
+                  aria-label="Delete selected model"
+                  style={{
+                    opacity: deletingModel === currentSelectedModel ? 0.6 : 1,
+                    cursor: deletingModel === currentSelectedModel ? 'not-allowed' : 'pointer'
+                  }}
+                />
               )}
               <span className="icon-copy" 
                 onClick={(event: React.MouseEvent<HTMLSpanElement>) => 

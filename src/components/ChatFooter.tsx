@@ -886,8 +886,24 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
       try {
         await llamaService.loadModel(selectedModel);
         console.log(`✅ [LOCAL DEBUG] Model ${selectedModel} loaded successfully`);
-      } catch (error) {
+      } catch (error: any) {
         console.error(`❌ [LOCAL DEBUG] Failed to load model ${selectedModel}:`, error);
+        
+        // Check if it's an Android platform error
+        if (error.message && error.message.includes('not implemented on Android')) {
+          const errorMessageObj: ErrorMessageObj = {
+            id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            text: 'Local model processing is not available on Android. Please use online mode instead.',
+            sender: 'bot',
+            time: new Date().toLocaleTimeString(),
+            timestamp: new Date().toISOString(),
+            isError: true
+          };
+          
+          setMessages(prevMessages => [...prevMessages, errorMessageObj]);
+          return false;
+        }
+        
         return false;
       }
 
@@ -927,6 +943,22 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
       }
     } catch (error: any) {
       console.error(`❌ [LOCAL DEBUG] Local processing error:`, error);
+      
+      // Check if it's an Android platform error
+      if (error.message && error.message.includes('not implemented on Android')) {
+        const errorMessageObj: ErrorMessageObj = {
+          id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          text: 'Local model processing is not available on Android. Please use online mode instead.',
+          sender: 'bot',
+          time: new Date().toLocaleTimeString(),
+          timestamp: new Date().toISOString(),
+          isError: true
+        };
+        
+        setMessages(prevMessages => [...prevMessages, errorMessageObj]);
+        return false;
+      }
+      
       return false;
     }
   };

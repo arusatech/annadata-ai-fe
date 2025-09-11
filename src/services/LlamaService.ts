@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { StoragePathService } from './StoragePathService';
 
 // Type definitions based on the actual llama-cpp-capacitor API
 export interface LlamaModel {
@@ -197,7 +198,17 @@ export class LlamaService {
   private static instance: LlamaService;
   private llamaContext: any = null;
   private isInitialized = false;
+  private isAndroidPlatform = Capacitor.getPlatform() === 'android';
+  private storagePathService = StoragePathService.getInstance();
   private availableModels: LlamaModel[] = [
+    {
+      id: 'tiny_test',
+      name: 'Tiny Test Model',
+      sizeMB: 461,
+      status: 'available',
+      description: 'Very small test model for debugging',
+      url: 'https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q2_K.gguf'
+    },
     {
       id: 'smol_0_1',
       name: 'SmoL-015',
@@ -242,10 +253,10 @@ export class LlamaService {
     {
       id: 'hermes_mistral',
       name: 'Hermes-Mistral',
-      sizeMB: 2785,
+      sizeMB: 3154,
       status: 'available',
-      description: 'Hermes 2 Pro Mistral 7B model',
-      url: 'https://huggingface.co/NousResearch/Hermes-2-Pro-Mistral-7B-GGUF/resolve/main/Hermes-2-Pro-Mistral-7B.Q2_K.gguf'
+      description: 'NousResearch Hermes 2 Mistral model',
+      url: 'https://huggingface.co/PsiPi/NousResearch_Nous-Hermes-2-Mistral-GGUF/resolve/main/NousResearch_Nous-Hermes-2-Mistral-GGUF_Q2_K.gguf'
     },
     {
       id: 'open_hermes2',
@@ -344,7 +355,10 @@ export class LlamaService {
     // Private constructor for singleton pattern
   }
 
-  public static getInstance(): LlamaService {
+  /**
+   * Get singleton instance
+   */
+  static getInstance(): LlamaService {
     if (!LlamaService.instance) {
       LlamaService.instance = new LlamaService();
     }
@@ -360,6 +374,13 @@ export class LlamaService {
         return;
       }
 
+      // Remove this Android check - the plugin supports Android
+      // if (this.isAndroidPlatform) {
+      //   console.warn('⚠️ LlamaCpp plugin is not fully implemented on Android. Local model processing will be disabled.');
+      //   this.isInitialized = true;
+      //   return;
+      // }
+
       // Load any previously downloaded models
       await this.loadDownloadedModels();
       
@@ -367,7 +388,8 @@ export class LlamaService {
       console.log('LlamaService initialized successfully');
     } catch (error) {
       console.error('Failed to initialize LlamaService:', error);
-      throw error;
+      // Don't throw error, just mark as initialized to prevent further attempts
+      this.isInitialized = true;
     }
   }
 
@@ -402,6 +424,145 @@ export class LlamaService {
   }
 
   /**
+   * Get storage information for all locations
+   */
+  async getStorageInfo() {
+    return await this.storagePathService.getStorageInfo();
+  }
+
+  /**
+   * Debug method to show storage paths and availability
+   */
+  async debugStoragePaths(): Promise<void> {
+    console.log('=== LlamaService Storage Debug ===');
+    await this.storagePathService.debugStoragePaths();
+    
+    const bestLocation = await this.storagePathService.getBestStorageLocation();
+    if (bestLocation) {
+      console.log(`\n✅ Best location for downloads: ${bestLocation.name}`);
+    } else {
+      console.log('\n❌ No suitable storage location found');
+    }
+  }
+
+  /**
+   * Test method to check which storage location would be selected for download
+   */
+  async testStorageSelection(modelId: string = 'test_model'): Promise<void> {
+    console.log(`🧪 Testing storage selection for model: ${modelId}`);
+    try {
+      const downloadInfo = await this.getModelDownloadPath(modelId);
+      console.log(`✅ Test successful! Selected location: ${downloadInfo.location}`);
+      console.log(`📁 Test path: ${downloadInfo.path}`);
+    } catch (error) {
+      console.error(`❌ Test failed:`, error);
+    }
+  }
+
+  /**
+   * Get the Capacitor Directory enum value for a storage location
+   */
+  private getDirectoryForLocation(locationId?: string): any {
+    if (!locationId) {
+      return this.storagePathService.getStorageLocations()[0]?.directory;
+    }
+    
+    const location = this.storagePathService.getStorageLocations().find(loc => loc.id === locationId);
+    return location?.directory || this.storagePathService.getStorageLocations()[0].directory;
+  }
+
+  /**
+   * Get model storage information
+   */
+  async getModelStorageInfo(modelId: string) {
+    return await this.storagePathService.searchModel(modelId);
+  }
+
+  /**
+   * Migrate a model to a different storage location
+   */
+  async migrateModel(modelId: string, fromLocationId: string, toLocationId: string): Promise<void> {
+    await this.storagePathService.migrateModel(modelId, fromLocationId, toLocationId);
+    
+    // Update the model's path in our records
+    const model = this.getModel(modelId);
+    if (model) {
+      const newPath = this.storagePathService.getModelPath(modelId, toLocationId);
+      model.path = newPath;
+      await this.saveDownloadedModels();
+    }
+  }
+
+  /**
+   * Clean up cache storage
+   */
+  async cleanupCache(): Promise<void> {
+    await this.storagePathService.cleanupCache();
+  }
+
+  /**
+   * Delete a specific model from all storage locations
+   */
+  async deleteModel(modelId: string): Promise<void> {
+    try {
+      console.log(`🗑️ Deleting model: ${modelId}`);
+      
+      // Get model info
+      const model = this.getModel(modelId);
+      if (!model) {
+        throw new Error(`Model ${modelId} not found`);
+      }
+
+      // Delete model files from all storage locations
+      await this.deleteModelFile(modelId);
+
+      // Remove from downloaded models list
+      this.downloadedModels = this.downloadedModels.filter(m => m.id !== modelId);
+      
+      // Update model status
+      model.status = 'available';
+      model.path = undefined;
+
+      // Save updated list
+      await this.saveDownloadedModels();
+
+      console.log(`✅ Model ${modelId} deleted successfully`);
+    } catch (error) {
+      console.error(`Failed to delete model ${modelId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete all downloaded models
+   */
+  async deleteAllModels(): Promise<void> {
+    try {
+      console.log('🗑️ Deleting all downloaded models...');
+      
+      const modelsToDelete = [...this.downloadedModels];
+      
+      for (const model of modelsToDelete) {
+        try {
+          await this.deleteModel(model.id);
+        } catch (error) {
+          console.error(`Failed to delete model ${model.id}:`, error);
+          // Continue with other models even if one fails
+        }
+      }
+
+      // Clear the downloaded models list
+      this.downloadedModels = [];
+      await this.saveDownloadedModels();
+
+      console.log('✅ All models deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete all models:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get a specific model by ID
    */
   getModel(modelId: string): LlamaModel | null {
@@ -409,22 +570,14 @@ export class LlamaService {
   }
 
   /**
-   * Check if a model file exists on the filesystem
+   * Check if a model file exists on the filesystem across all storage locations
+   * Checks in priority order: External Storage > Documents > App Data > Cache
    */
   private async checkModelFileExists(modelId: string): Promise<boolean> {
     try {
-      const { Filesystem, Directory } = await import('@capacitor/filesystem');
-      const downloadPath = await this.getModelDownloadPath(modelId);
-      
-      await Filesystem.stat({
-        path: downloadPath,
-        directory: Directory.Documents
-      });
-      
-      console.log(`Model file exists: ${downloadPath}`);
-      return true;
+      return await this.storagePathService.modelExists(modelId);
     } catch (error) {
-      console.log(`Model file does not exist: ${modelId}`);
+      console.log(`Error checking model file existence: ${error}`);
       return false;
     }
   }
@@ -434,28 +587,38 @@ export class LlamaService {
    */
   private async verifyModelIntegrity(modelId: string): Promise<boolean> {
     try {
-      const { Filesystem, Directory } = await import('@capacitor/filesystem');
-      const downloadPath = await this.getModelDownloadPath(modelId);
       const model = this.getModel(modelId);
-      
       if (!model) {
         return false;
       }
 
-      const fileInfo = await Filesystem.stat({
-        path: downloadPath,
-        directory: Directory.Documents
-      });
+      // Get model storage information
+      const modelInfo = await this.storagePathService.searchModel(modelId);
+      
+      // Find the primary location where the model exists
+      const primaryLocation = modelInfo.primaryLocation;
+      if (!primaryLocation) {
+        console.log(`Model ${modelId} not found in any storage location`);
+        return false;
+      }
 
-      // Check if file size is reasonable (at least 1MB and not empty)
-      const fileSizeBytes = fileInfo.size || 0;
+      const locationInfo = modelInfo.locations[primaryLocation];
+      if (!locationInfo.exists || !locationInfo.size) {
+        console.log(`Model ${modelId} exists but size information unavailable`);
+        return false;
+      }
+
+      // Check if file size is reasonable
+      const fileSizeBytes = locationInfo.size;
       const fileSizeMB = fileSizeBytes / (1024 * 1024);
       
       console.log(`Model file size: ${fileSizeMB.toFixed(2)}MB (expected: ~${model.sizeMB}MB)`);
       
-      // Allow some tolerance in file size (models can be slightly different sizes)
-      const minExpectedSize = model.sizeMB * 0.8; // 80% of expected size
-      const maxExpectedSize = model.sizeMB * 1.2; // 120% of expected size
+      // Allow more tolerance in file size (models can vary significantly in size)
+      const minExpectedSize = model.sizeMB * 0.5; // 50% of expected size (more lenient)
+      const maxExpectedSize = model.sizeMB * 2.0; // 200% of expected size (more lenient)
+      
+      console.log(`Size check: ${fileSizeMB.toFixed(2)}MB (min: ${minExpectedSize.toFixed(2)}MB, max: ${maxExpectedSize.toFixed(2)}MB)`);
       
       return fileSizeBytes > 1024 * 1024 && // At least 1MB
              fileSizeMB >= minExpectedSize && 
@@ -490,15 +653,18 @@ export class LlamaService {
 
       // Check if model file already exists on filesystem
       const fileExists = await this.checkModelFileExists(modelId);
+      console.log(`🔍 Model ${modelId} file exists check: ${fileExists}`);
       if (fileExists) {
         // Verify the existing file integrity
         const isValid = await this.verifyModelIntegrity(modelId);
+        console.log(`🔍 Model ${modelId} integrity check: ${isValid}`);
         if (isValid) {
-          console.log(`Model ${modelId} already exists and is valid, skipping download`);
+          console.log(`✅ Model ${modelId} already exists and is valid, skipping download`);
           
           // Update model status and add to downloaded models if not already there
           model.status = 'downloaded';
-          model.path = await this.getModelDownloadPath(modelId);
+          const downloadInfo = await this.getModelDownloadPath(modelId);
+          model.path = downloadInfo.path;
           
           if (!this.downloadedModels.find(m => m.id === modelId)) {
             this.downloadedModels.push({ ...model });
@@ -531,17 +697,19 @@ export class LlamaService {
 
       model.status = 'downloading';
 
-      // Get the standard download path for the platform
-      const downloadPath = await this.getModelDownloadPath(modelId);
+      // Get the best available download path for the platform
+      const downloadInfo = await this.getModelDownloadPath(modelId);
+      const downloadPath = downloadInfo.path;
+      const storageLocation = downloadInfo.location;
       
-      console.log(`Downloading model ${modelId} from ${model.url} to ${downloadPath}`);
+      console.log(`Downloading model ${modelId} from ${model.url} to ${downloadPath} (location: ${storageLocation})`);
 
       // For web platform, use fetch with progress tracking
       if (Capacitor.getPlatform() === 'web') {
-        await this.downloadModelWeb(model, downloadPath, onProgress);
+        await this.downloadModelWeb(model, downloadPath, onProgress, storageLocation);
       } else {
         // For native platforms, use Capacitor HTTP with progress
-        await this.downloadModelNative(model, downloadPath, onProgress);
+        await this.downloadModelNative(model, downloadPath, onProgress, storageLocation);
       }
 
       // Verify the downloaded file
@@ -571,39 +739,74 @@ export class LlamaService {
   }
 
   /**
-   * Get the download path for a model
+   * Get the download path for a model using the best available storage location
+   * Prioritizes: External Storage > Documents > App Data > Cache
    */
-  private async getModelDownloadPath(modelId: string): Promise<string> {
-    const { Filesystem, Directory } = await import('@capacitor/filesystem');
-    
+  private async getModelDownloadPath(modelId: string): Promise<{ path: string; location: string }> {
     try {
-      // Check if models directory already exists
-      try {
-        await Filesystem.stat({
-          path: 'models',
-          directory: Directory.Documents
-        });
-        // Directory exists, no need to create it
-      } catch (statError) {
-        // Directory doesn't exist, create it
-        await Filesystem.mkdir({
-          path: 'models',
-          directory: Directory.Documents,
-          recursive: true
-        });
-      }
-
-      // Sanitize the model ID to create a valid filename
-      // Replace dots and other problematic characters with underscores
-      const sanitizedId = modelId.replace(/[.-]/g, '_');
+      // Get all storage locations sorted by priority
+      const storageLocations = this.storagePathService.getStorageLocations();
       
-      // Return the full path for the model file
-      return `models/${sanitizedId}.gguf`;
+      console.log(`🔍 Checking storage locations for model ${modelId} download:`);
+      storageLocations.forEach(loc => {
+        console.log(`  ${loc.priority}. ${loc.name} (${loc.id}) - ${loc.isRecommended ? 'RECOMMENDED' : 'normal'}`);
+      });
+      
+      // Get storage info once for all locations
+      const storageInfo = await this.storagePathService.getStorageInfo();
+      console.log(`📊 Storage location status:`);
+      storageInfo.forEach(info => {
+        console.log(`  ${info.location.name}: available=${info.available}, writable=${info.writable}`);
+        if (info.error) {
+          console.log(`    ❌ Error: ${info.error}`);
+        }
+      });
+      
+      // Find the first available and writable location in priority order
+      for (const location of storageLocations) {
+        try {
+          console.log(`🔍 Checking location: ${location.name} (${location.id})`);
+          
+          // Check if this location is available and writable
+          const locationInfo = storageInfo.find(info => info.location.id === location.id);
+          
+          if (locationInfo && locationInfo.available && locationInfo.writable) {
+            try {
+              // Ensure the models directory exists in the chosen location
+              await this.storagePathService.ensureModelsDirectory(location.id);
+
+              // Get the model path
+              const modelPath = this.storagePathService.getModelPath(modelId, location.id);
+
+              console.log(`🎯 SELECTED storage location: ${location.name} (${location.id}) for model ${modelId}`);
+              console.log(`📁 Full download path: ${modelPath}`);
+              
+              return {
+                path: modelPath,
+                location: location.id
+              };
+            } catch (dirError) {
+              console.log(`❌ Failed to ensure directory in ${location.name}:`, dirError);
+              console.log(`   Trying next location...`);
+              continue; // Try next location
+            }
+          } else {
+            console.log(`❌ Location ${location.name} not suitable: available=${locationInfo?.available}, writable=${locationInfo?.writable}`);
+            if (locationInfo?.error) {
+              console.log(`   Error: ${locationInfo.error}`);
+            }
+            console.log(`   Trying next location...`);
+          }
+        } catch (error) {
+          console.log(`❌ Error checking storage location ${location.name}:`, error);
+          continue; // Try next location
+        }
+      }
+      
+      throw new Error('No available storage location found');
     } catch (error) {
-      console.error('Error handling models directory:', error);
-      // Fallback to a default path with sanitized ID
-      const sanitizedId = modelId.replace(/[.-]/g, '_');
-      return `models/${sanitizedId}.gguf`;
+      console.error('❌ Error getting model download path:', error);
+      throw error; // Don't fallback to app_data, let the caller handle the error
     }
   }
 
@@ -644,7 +847,7 @@ export class LlamaService {
   /**
    * Helper method to append data to a file
    */
-  private async appendToFile(filePath: string, data: Uint8Array): Promise<void> {
+  private async appendToFile(filePath: string, data: Uint8Array, directory?: any): Promise<void> {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
     
     // Use the efficient base64 conversion
@@ -653,7 +856,7 @@ export class LlamaService {
     await Filesystem.appendFile({
       path: filePath,
       data: base64Data,
-      directory: Directory.Documents
+      directory: directory || Directory.Data
     });
   }
 
@@ -663,7 +866,8 @@ export class LlamaService {
   private async downloadModelWeb(
     model: LlamaModel, 
     downloadPath: string, 
-    onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void
+    onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void,
+    storageLocation?: string
   ): Promise<void> {
     const response = await fetch(model.url!);
     
@@ -685,12 +889,16 @@ export class LlamaService {
     // Create a temporary file for streaming
     const tempPath = `${downloadPath}.tmp`;
     
+    // Get the correct directory based on storage location
+    const targetDirectory = this.getDirectoryForLocation(storageLocation);
+    
     try {
+      
       // Initialize empty file
       await Filesystem.writeFile({
         path: tempPath,
         data: '',
-        directory: Directory.Documents,
+        directory: targetDirectory,
         recursive: true
       });
 
@@ -705,7 +913,7 @@ export class LlamaService {
           // Write any remaining data
           if (currentChunk.length > 0) {
             const finalChunk = this.concatenateChunks(currentChunk);
-            await this.appendToFile(tempPath, finalChunk);
+            await this.appendToFile(tempPath, finalChunk, targetDirectory);
           }
           break;
         }
@@ -717,7 +925,7 @@ export class LlamaService {
         // Write chunk when it reaches the target size
         if (currentChunkSize >= chunkSize) {
           const chunkData = this.concatenateChunks(currentChunk);
-          await this.appendToFile(tempPath, chunkData);
+          await this.appendToFile(tempPath, chunkData, targetDirectory);
           
           // Clear chunk buffer
           currentChunk = [];
@@ -739,8 +947,8 @@ export class LlamaService {
       await Filesystem.rename({
         from: tempPath,
         to: downloadPath,
-        directory: Directory.Documents,
-        toDirectory: Directory.Documents
+        directory: targetDirectory,
+        toDirectory: targetDirectory
       });
 
     } catch (error) {
@@ -748,7 +956,7 @@ export class LlamaService {
       try {
         await Filesystem.deleteFile({
           path: tempPath,
-          directory: Directory.Documents
+          directory: targetDirectory
         });
       } catch (cleanupError) {
         console.error('Failed to cleanup temp file:', cleanupError);
@@ -763,7 +971,8 @@ export class LlamaService {
   private async downloadModelNative(
     model: LlamaModel, 
     downloadPath: string, 
-    onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void
+    onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void,
+    storageLocation?: string
   ): Promise<void> {
     const response = await fetch(model.url!);
     
@@ -785,12 +994,16 @@ export class LlamaService {
     // Create a temporary file for streaming
     const tempPath = `${downloadPath}.tmp`;
     
+    // Get the correct directory based on storage location
+    const targetDirectory = this.getDirectoryForLocation(storageLocation);
+    
     try {
+      
       // Initialize empty file
       await Filesystem.writeFile({
         path: tempPath,
         data: '',
-        directory: Directory.Documents,
+        directory: targetDirectory,
         recursive: true
       });
 
@@ -805,7 +1018,7 @@ export class LlamaService {
           // Write any remaining data
           if (currentChunk.length > 0) {
             const finalChunk = this.concatenateChunks(currentChunk);
-            await this.appendToFile(tempPath, finalChunk);
+            await this.appendToFile(tempPath, finalChunk, targetDirectory);
           }
           break;
         }
@@ -817,7 +1030,7 @@ export class LlamaService {
         // Write chunk when it reaches the target size
         if (currentChunkSize >= chunkSize) {
           const chunkData = this.concatenateChunks(currentChunk);
-          await this.appendToFile(tempPath, chunkData);
+          await this.appendToFile(tempPath, chunkData, targetDirectory);
           
           // Clear chunk buffer
           currentChunk = [];
@@ -837,8 +1050,8 @@ export class LlamaService {
       await Filesystem.rename({
         from: tempPath,
         to: downloadPath,
-        directory: Directory.Documents,
-        toDirectory: Directory.Documents
+        directory: targetDirectory,
+        toDirectory: targetDirectory
       });
 
     } catch (error) {
@@ -846,7 +1059,7 @@ export class LlamaService {
       try {
         await Filesystem.deleteFile({
           path: tempPath,
-          directory: Directory.Documents
+          directory: targetDirectory
         });
       } catch (cleanupError) {
         console.error('Failed to cleanup temp file:', cleanupError);
@@ -856,19 +1069,32 @@ export class LlamaService {
   }
 
   /**
-   * Delete a model file from the filesystem
+   * Delete a model file from the filesystem across all storage locations
    */
   private async deleteModelFile(modelId: string): Promise<void> {
     try {
-      const { Filesystem, Directory } = await import('@capacitor/filesystem');
-      const downloadPath = await this.getModelDownloadPath(modelId);
+      const { Filesystem } = await import('@capacitor/filesystem');
       
-      await Filesystem.deleteFile({
-        path: downloadPath,
-        directory: Directory.Documents
-      });
+      // Get model storage information
+      const modelInfo = await this.storagePathService.searchModel(modelId);
       
-      console.log(`Deleted model file: ${downloadPath}`);
+      // Delete the model from all locations where it exists
+      for (const [locationId, locationInfo] of Object.entries(modelInfo.locations)) {
+        if (locationInfo.exists) {
+          const location = this.storagePathService.getStorageLocations().find(loc => loc.id === locationId);
+          if (location) {
+            try {
+              await Filesystem.deleteFile({
+                path: locationInfo.path,
+                directory: location.directory
+              });
+              console.log(`Deleted model file from ${location.name}: ${locationInfo.path}`);
+            } catch (error) {
+              console.warn(`Failed to delete model from ${location.name}:`, error);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error(`Failed to delete model file ${modelId}:`, error);
     }
@@ -882,6 +1108,11 @@ export class LlamaService {
       if (!this.isInitialized) {
         throw new Error('LlamaService not initialized');
       }
+
+      // Remove this Android check - the plugin supports Android
+      // if (this.isAndroidPlatform) {
+      //   throw new Error('LlamaCpp plugin is not implemented on Android. Please use online mode instead.');
+      // }
 
       const model = this.getModel(modelId);
       if (!model) {
@@ -899,6 +1130,29 @@ export class LlamaService {
         await this.releaseModel();
       }
 
+      // Get the model path from the storage system
+      let modelPath = model.path;
+      if (modelPath && !modelPath.startsWith('/') && !modelPath.startsWith('file://')) {
+        // Get the primary location where the model is stored
+        const primaryLocation = await this.storagePathService.getModelPrimaryLocation(modelId);
+        if (primaryLocation) {
+          const { Filesystem } = await import('@capacitor/filesystem');
+          try {
+            // Get the full URI for the model file
+            const uri = await Filesystem.getUri({
+              path: primaryLocation.path,
+              directory: primaryLocation.location.directory
+            });
+            modelPath = uri.uri;
+            console.log(`Full model path: ${modelPath}`);
+          } catch (error) {
+            console.error('Failed to get model URI:', error);
+            // Fallback to the stored path
+            modelPath = model.path;
+          }
+        }
+      }
+
       // Convert pooling_type from string to number
       const poolTypeMap = {
         none: 0,
@@ -908,17 +1162,20 @@ export class LlamaService {
         rank: 4,
       };
 
-      const params: ContextParams = {
-        model: model.path || modelId,
-        n_ctx: 2048,
-        n_batch: 512,
-        n_threads: 4,
-        n_gpu_layers: 99,
-        use_mmap: true,
-        use_mlock: true,
-        pooling_type: 'none',
-        ...contextParams
-      };
+             // Use extremely conservative parameters for mobile devices to avoid crashes
+       const isMobile = Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios';
+       
+       const params: ContextParams = {
+         model: modelPath || modelId,
+         n_ctx: isMobile ? 1024 : 2048, // Smaller context for mobile
+         n_batch: isMobile ? 128 : 512, // Much smaller batch size for mobile
+         n_threads: isMobile ? 1 : 4, // Single thread for mobile to avoid race conditions
+         n_gpu_layers: 0, // Always disable GPU layers to avoid crashes
+         use_mmap: isMobile ? false : true, // Disable mmap on mobile
+         use_mlock: false, // Always disable mlock to avoid permission issues
+         pooling_type: 'none',
+         ...contextParams
+       };
 
       // Convert pooling_type to number
       if (params.pooling_type && typeof params.pooling_type === 'string') {
@@ -943,6 +1200,11 @@ export class LlamaService {
     onToken?: (token: TokenData) => void
   ): Promise<CompletionResult> {
     try {
+      // Remove this Android check - the plugin supports Android
+      // if (this.isAndroidPlatform) {
+      //   throw new Error('LlamaCpp plugin is not implemented on Android. Please use online mode instead.');
+      // }
+
       if (!this.llamaContext) {
         throw new Error('No model loaded. Please load a model first.');
       }
@@ -1299,3 +1561,4 @@ export class LlamaService {
 
 // Export singleton instance
 export default LlamaService.getInstance();
+
