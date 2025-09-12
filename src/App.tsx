@@ -137,6 +137,19 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    // Show splash screen immediately
+    const showSplash = async () => {
+      try {
+        console.log('🔍 [SPLASH] Showing splash screen immediately...');
+        await SplashScreen.show();
+        console.log('✅ [SPLASH] Splash screen shown successfully');
+      } catch (error) {
+        console.error('❌ [SPLASH] Error showing splash screen:', error);
+      }
+    };
+    
+    showSplash();
+    
     // Initialize and hide the splash screen when component mounts
     const initApp = async (): Promise<(() => void) | void> => {
       try {
@@ -413,11 +426,20 @@ const App: React.FC = () => {
           console.log('✅ App Startup Complete: User needs registration, showing join icon');
         }
         
-        // Hide the splash screen when the app is ready
+        // Debug splash screen
+        console.log('🔍 [SPLASH] App ready, checking splash screen...');
+        
+        // Hide splash screen after a delay
         setTimeout(async () => {
+          try {
+            console.log('🔍 [SPLASH] Hiding splash screen...');
             await SplashScreen.hide();
+            console.log('✅ [SPLASH] Splash screen hidden successfully');
+          } catch (error) {
+            console.error('❌ [SPLASH] Error hiding splash screen:', error);
+          }
           setIsLoading(false);
-        }, 2000);
+        }, 3000);
 
         // Return cleanup function
         return () => {
@@ -434,10 +456,20 @@ const App: React.FC = () => {
         setIsUserLoggedIn(false);
         setIsOffline(true);
         
+        // Debug splash screen in error case
+        console.log('🔍 [SPLASH] App error, checking splash screen...');
+        
+        // Let Capacitor handle splash screen auto-hide
         setTimeout(async () => {
-          await SplashScreen.hide();
-        setIsLoading(false);
-        }, 2000);
+          try {
+            console.log('🔍 [SPLASH] Hiding splash screen (error case)...');
+            await SplashScreen.hide();
+            console.log('✅ [SPLASH] Splash screen hidden successfully (error case)');
+          } catch (error) {
+            console.error('❌ [SPLASH] Error hiding splash screen (error case):', error);
+          }
+          setIsLoading(false);
+        }, 1000);
       }
     };
 
@@ -485,7 +517,7 @@ const App: React.FC = () => {
         height: '100vh' 
       }}>
         <p style={{ fontSize: 18, color: '#888' }}>Loading...</p>
-            </div>
+      </div>
     );
   }
 
