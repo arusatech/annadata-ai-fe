@@ -55,6 +55,10 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
   const [deletingModel, setDeletingModel] = useState<string | null>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState<boolean>(false);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState<boolean>(true);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const chatMessagesRef = useRef<HTMLDivElement>(null);
 
   // Initialize llama service
   useEffect(() => {
@@ -70,6 +74,77 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
     initializeLlama();
   }, [llamaService]);
+
+  // Auto-scroll to bottom when new messages are added
+  useEffect(() => {
+    if (messagesEndRef.current && messages.length > 0) {
+      // Always scroll to show the latest message (both user and bot messages)
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'end',
+        inline: 'nearest'
+      });
+      
+      // Re-enable auto-scroll when new messages arrive
+      setShouldAutoScroll(true);
+      setIsUserScrolling(false);
+    }
+  }, [messages]); // Trigger when messages array changes
+
+  // Function to ensure latest message is always visible
+  const ensureLatestMessageVisible = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'end',
+        inline: 'nearest'
+      });
+    }
+  };
+
+  // Ensure latest message is visible when component first loads
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        ensureLatestMessageVisible();
+      }, 100);
+    }
+  }, []); // Run once on mount
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle scroll events to detect user scrolling
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const threshold = 10; // Allow 10px tolerance for "at bottom" detection
+    const isAtBottom = element.scrollHeight - element.scrollTop - element.clientHeight <= threshold;
+    
+    // Clear existing timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    // Debounce scroll detection to prevent rapid state changes
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (isAtBottom) {
+        // User is at or near the bottom
+        setShouldAutoScroll(true);
+        setIsUserScrolling(false);
+      } else {
+        // User has scrolled up to read old messages
+        // Note: We don't disable auto-scroll here because we want to always show latest messages
+        setIsUserScrolling(true);
+      }
+    }, 100); // Reduced debounce delay for more responsive detection
+  };
 
   // Use the prop if provided, otherwise use local state
   const currentSelectedModel = selectedModel || localSelectedModel;
@@ -693,10 +768,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     );
   };
 
+
   return (
     <div className="chat-container" id="chatContainer">
-      <div className="chat-messages-wrapper">
+      <div className="chat-messages-wrapper" onScroll={handleScroll}>
         <div 
+          ref={chatMessagesRef}
           id="chat-messages" 
           className={`chat-messages ${messages.length === 0 ? 'welcome-only' : ''}`}
         >
