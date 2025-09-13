@@ -115,6 +115,7 @@ const App: React.FC = () => {
   const [isUserLoggedIn, setIsUserLoggedIn] = useState<boolean>(false);
   const [isOffline, setIsOffline] = useState<boolean>(false);
   const [selectedModel, setSelectedModel] = useState<string>('online'); // Default to online
+  const [isLocalProcessing, setIsLocalProcessing] = useState<boolean>(false); // Add this state
 
   // Error boundary for the app
   const [hasError, setHasError] = useState<boolean>(false);
@@ -134,6 +135,11 @@ const App: React.FC = () => {
   const handleAuthStateChange = (isLoggedIn: boolean, isOfflineMode: boolean): void => {
     setIsUserLoggedIn(isLoggedIn);
     setIsOffline(isOfflineMode);
+  };
+
+  // Add handler for loading state changes
+  const handleLoadingChange = (loading: boolean) => {
+    setIsLocalProcessing(loading);
   };
 
   useEffect(() => {
@@ -539,11 +545,13 @@ const App: React.FC = () => {
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
           isOffline={isOffline}
+          isLoading={isLocalProcessing} // Pass the loading state
         />
         <ChatFooter 
           onSendMessage={handleSendMessage} 
           setMessages={setMessages}
           selectedModel={selectedModel}
+          onLoadingChange={handleLoadingChange} // Pass the loading handler
         />
       </div>
     );

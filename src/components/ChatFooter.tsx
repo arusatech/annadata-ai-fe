@@ -23,6 +23,7 @@ interface ChatFooterProps {
   onSendMessage?: (message: string) => void;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   selectedModel?: string; // Add this prop
+  onLoadingChange?: (isLoading: boolean) => void; // Add this prop
 }
 
 interface UserMessageObj {
@@ -62,7 +63,7 @@ interface FileAttachment {
   webPath?: string;
 }
 
-const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, selectedModel }) => {
+const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, selectedModel, onLoadingChange }) => {
   const { t, i18n } = useTranslation();
   const [message, setMessage] = useState<string>('');
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
@@ -830,9 +831,17 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
   // Process message locally using downloaded model (Offline mode)
   const processMessageLocally = async (messageText: string, timestamp: string): Promise<boolean> => {
     try {
+      // Show loading animation
+      if (onLoadingChange) {
+        onLoadingChange(true);
+      }
+
       // Early return if selectedModel is undefined
       if (!selectedModel) {
         console.error(`❌ [LOCAL DEBUG] No model selected`);
+        if (onLoadingChange) {
+          onLoadingChange(false);
+        }
         return false;
       }
 
@@ -842,6 +851,9 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
       const model = llamaService.getModel(selectedModel);
       if (!model || model.status !== 'downloaded') {
         console.error(`❌ [LOCAL DEBUG] Model ${selectedModel} is not downloaded`);
+        if (onLoadingChange) {
+          onLoadingChange(false);
+        }
         return false;
       }
 
@@ -864,9 +876,15 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
           };
           
           setMessages(prevMessages => [...prevMessages, errorMessageObj]);
+          if (onLoadingChange) {
+            onLoadingChange(false);
+          }
           return false;
         }
         
+        if (onLoadingChange) {
+          onLoadingChange(false);
+        }
         return false;
       }
 
@@ -899,9 +917,15 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
         };
         
         setMessages(prevMessages => [...prevMessages, botMessageObj]);
+        if (onLoadingChange) {
+          onLoadingChange(false);
+        }
         return true;
       } else {
         console.error(`❌ [LOCAL DEBUG] No response generated from local model`);
+        if (onLoadingChange) {
+          onLoadingChange(false);
+        }
         return false;
       }
     } catch (error: any) {
@@ -919,9 +943,15 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
         };
         
         setMessages(prevMessages => [...prevMessages, errorMessageObj]);
+        if (onLoadingChange) {
+          onLoadingChange(false);
+        }
         return false;
       }
       
+      if (onLoadingChange) {
+        onLoadingChange(false);
+      }
       return false;
     }
   };

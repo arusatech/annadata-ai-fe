@@ -25,8 +25,8 @@
   padding: 10px 20px;
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  /* Add additional top margin for extra safety */
-  margin-top: 3px; /* Reduced from 5px to 3px */
+  /* Add additional top margin to move menu-bar down */
+  margin-top: 12px; /* Increased from 3px to 12px to move menu-bar down */
 }
 
 .menu-title {
@@ -76,7 +76,7 @@
   }
   
   .menu-bar {
-    margin-top: 6px; /* Reduced from 8px to 6px */
+    margin-top: 15px; /* Increased from 6px to 15px to move menu-bar down */
   }
 }
 
@@ -88,7 +88,7 @@
   }
   
   .menu-bar {
-    margin-top: 8px; /* Reduced from 10px to 8px */
+    margin-top: 18px; /* Increased from 8px to 18px to move menu-bar down */
   }
 }
 
