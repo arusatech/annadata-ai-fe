@@ -71,7 +71,6 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recordingState, setRecordingState] = useState<'mic' | 'stop' | 'send'>('mic');
   const [partialTranscript, setPartialTranscript] = useState<string>('');
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState<boolean>(false);
   
   // Photo attachments state
   const [photoAttachments, setPhotoAttachments] = useState<PhotoAttachment[]>([]);
@@ -100,42 +99,6 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
     checkAuth();
   }, []);
 
-  // Keyboard detection for mobile devices
-  useEffect(() => {
-    const handleResize = () => {
-      const isMobile = window.innerWidth <= 768;
-      if (isMobile) {
-        const viewportHeight = window.innerHeight;
-        const windowHeight = window.outerHeight;
-        const keyboardHeight = windowHeight - viewportHeight;
-        
-        // If keyboard height is significant, consider it open
-        setIsKeyboardOpen(keyboardHeight > 150);
-      }
-    };
-
-    const handleVisualViewportChange = () => {
-      if (window.visualViewport) {
-        const keyboardHeight = window.innerHeight - window.visualViewport.height;
-        setIsKeyboardOpen(keyboardHeight > 150);
-      }
-    };
-
-    // Listen for resize events (keyboard show/hide)
-    window.addEventListener('resize', handleResize);
-    
-    // Listen for visual viewport changes (more reliable for keyboard detection)
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleVisualViewportChange);
-    }
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleVisualViewportChange);
-      }
-    };
-  }, []);
 
   // Debug effect to monitor message state changes
   useEffect(() => {
@@ -1084,21 +1047,11 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
   const handleInputFocus = (): void => {
     setIsInputFocused(true);
     updateButtonState();
-    
-    // On mobile, assume keyboard will open when input is focused
-    if (window.innerWidth <= 768) {
-      setTimeout(() => setIsKeyboardOpen(true), 300);
-    }
   };
 
   const handleInputBlur = (): void => {
     setIsInputFocused(false);
     updateButtonState();
-    
-    // On mobile, assume keyboard will close when input loses focus
-    if (window.innerWidth <= 768) {
-      setTimeout(() => setIsKeyboardOpen(false), 300);
-    }
   };
 
   // Handle right action click (mic, stop, or send)
@@ -1172,7 +1125,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
   const buttonConfig = getButtonIcon();
 
   return (
-    <div className={`chat-footer ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
+    <div className="chat-footer">
       {/* Photo attachments preview */}
       {photoAttachments.length > 0 && (
         <div className="photo-attachments-preview">

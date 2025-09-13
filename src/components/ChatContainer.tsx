@@ -21,6 +21,7 @@ interface ChatContainerProps {
   isLoading?: boolean;
   selectedModel?: string;
   onModelChange?: (model: string) => void;
+  isOffline?: boolean;
 }
 
 interface CopyButtonEvent extends React.MouseEvent<HTMLButtonElement> {
@@ -34,7 +35,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   messages = [], 
   isLoading = false,
   selectedModel,
-  onModelChange
+  onModelChange,
+  isOffline = false
 }) => {
   const { t } = useTranslation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -527,13 +529,26 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     }
   };
 
+  // Function to get welcome message with conditional AI styling
+  const getWelcomeWithConditionalAI = () => {
+    const baseWelcome = t('welcome', 'Welcome to AnnaData<sup>ai</sup>! How can I help you today?');
+    
+    if (isOffline) {
+      // Show AI in red when offline
+      return baseWelcome.replace('<sup>ai</sup>', '<sup class="ai-offline" title="AI Offline">ai</sup>');
+    } else {
+      // Show AI in black when online
+      return baseWelcome.replace('<sup>ai</sup>', '<sup class="ai-online" title="AI Online">ai</sup>');
+    }
+  };
+
   const renderWelcomeMessage = (): React.ReactElement => (
     <div className="welcome-message">
       <div
         className="greeting-message"
         id="greeting-message"
       >
-        {t('welcome', 'Welcome to AnnaData (ai)℠! How can I help you today?')}
+        <span dangerouslySetInnerHTML={{ __html: getWelcomeWithConditionalAI() }} />
       </div>
     </div>
   );

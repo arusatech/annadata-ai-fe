@@ -6,6 +6,35 @@ html, body, #root {
     overflow: hidden; /* Prevent double scrollbars */
 }
 
+/* Custom superscript styling for AI branding */
+sup {
+    font-size: 10px !important;
+    line-height: 1;
+    vertical-align: super;
+    font-weight: bold;
+}
+
+/* AI status styling */
+.ai-online {
+    color: #000000 !important;
+    cursor: default;
+}
+
+.ai-offline {
+    color: #ff6b35 !important;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.ai-offline:hover {
+    color: #e55a2b !important;
+}
+
+.ai-retrying {
+    color: #ccc !important;
+    cursor: not-allowed;
+}
+
 #root {
     display: flex;
     flex-direction: column;

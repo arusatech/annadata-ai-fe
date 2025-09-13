@@ -538,6 +538,7 @@ const App: React.FC = () => {
           messages={messages} 
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
+          isOffline={isOffline}
         />
         <ChatFooter 
           onSendMessage={handleSendMessage} 

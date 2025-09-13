@@ -87,6 +87,28 @@ const MenuContainer: React.FC<MenuContainerProps> = ({ isUserLoggedIn, isOffline
     }
   };
 
+  // Function to get title with conditional AI styling
+  const getTitleWithConditionalAI = () => {
+    const baseTitle = t('title', 'AnnaData<sup>ai</sup>');
+    
+    if (isRetrying) {
+      // Show AI in gray when retrying
+      return baseTitle.replace('<sup>ai</sup>', '<sup class="ai-retrying" title="Retrying connection...">ai</sup>');
+    } else if (isOffline) {
+      // Show AI in red and clickable when offline
+      return baseTitle.replace('<sup>ai</sup>', '<sup class="ai-offline" title="Click to retry server connection">ai</sup>');
+    } else {
+      // Show AI in black when online
+      return baseTitle.replace('<sup>ai</sup>', '<sup class="ai-online" title="AI Online">ai</sup>');
+    }
+  };
+
+  // Handle AI click for retry connection
+  const handleAIRetryClick = () => {
+    if (!isOffline || isRetrying) return;
+    handleRetryConnection();
+  };
+
   const toggleNidhiPopup = () => {
     setIsNidhiPopupVisible(!isNidhiPopupVisible);
   };
@@ -101,25 +123,19 @@ const MenuContainer: React.FC<MenuContainerProps> = ({ isUserLoggedIn, isOffline
         <div className="menu-icon" id="tractor-icon" onClick={toggleDeviceInfoPopup}>
           <img src={tractorIcon} alt="Tractor icon" style={{ width: '32px', height: '32px', marginRight: '2px' }} />
         </div>
-        <div className="menu-title" id="title" data-default-message="AnnaData (ai)™" style={{ textAlign: 'left', marginRight: '2px' }}>
-          {t('title', 'AnnaData (ai)℠')}
-          {isOffline && (
-            <span 
-              onClick={handleRetryConnection}
-              style={{ 
-                fontSize: '12px', 
-                color: isRetrying ? '#ccc' : '#ff6b35', 
-                marginLeft: '8px',
-                fontWeight: 'normal',
-                cursor: isRetrying ? 'not-allowed' : 'pointer',
-                textDecoration: isRetrying ? 'none' : 'underline',
-                userSelect: 'none'
-              }}
-              title={isRetrying ? 'Retrying connection...' : 'Click to retry server connection'}
-            >
-              {isRetrying ? '(Retrying...)' : '(Offline)'}
-            </span>
-          )}
+        <div 
+          className="menu-title" 
+          id="title" 
+          data-default-message="AnnaData (ai)™" 
+          style={{ textAlign: 'left', marginRight: '2px' }}
+          onClick={(e) => {
+            // Check if the clicked element is the AI superscript
+            if (e.target instanceof HTMLElement && e.target.classList.contains('ai-offline')) {
+              handleAIRetryClick();
+            }
+          }}
+        >
+          <span dangerouslySetInnerHTML={{ __html: getTitleWithConditionalAI() }} />
         </div>
         <div className="menu-icons">
           <div className="icon">
