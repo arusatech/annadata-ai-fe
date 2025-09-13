@@ -15,6 +15,9 @@
   /* Ensure menu stays below camera/notch area */
   position: relative;
   z-index: 100;
+  /* Remove any potential borders or outlines */
+  border: none !important;
+  outline: none !important;
 }
 
 .menu-bar {
@@ -27,6 +30,9 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   /* Add additional top margin to move menu-bar down */
   margin-top: 12px; /* Increased from 3px to 12px to move menu-bar down */
+  /* Remove any potential borders or outlines */
+  border: none !important;
+  outline: none !important;
 }
 
 .menu-title {
@@ -36,12 +42,18 @@
   margin: 0;
   flex: 1;
   text-align: left;
+  /* Remove any potential borders or outlines */
+  border: none !important;
+  outline: none !important;
 }
 
 .menu-icons {
   display: flex;
   gap: 5px;
   align-items: center;
+  /* Remove any potential borders or outlines */
+  border: none !important;
+  outline: none !important;
 }
 
 .menu-icon {
@@ -49,6 +61,9 @@
   padding: 4px;
   border-radius: 4px;
   transition: background-color 0.2s ease;
+  /* Remove any potential borders or outlines */
+  border: none !important;
+  outline: none !important;
 }
 
 .menu-icon:hover {
