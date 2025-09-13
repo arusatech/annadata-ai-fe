@@ -427,19 +427,20 @@ const App: React.FC = () => {
         }
         
         // Debug splash screen
-        console.log('🔍 [SPLASH] App ready, checking splash screen...');
+        console.log('🔍 [SPLASH] App initialization complete, keeping splash visible until fully ready...');
         
-        // Hide splash screen after a delay
+        // Keep splash screen visible and hide it only when app is fully ready
+        // Add a delay to ensure all components are mounted and ready
         setTimeout(async () => {
           try {
-            console.log('🔍 [SPLASH] Hiding splash screen...');
+            console.log('🔍 [SPLASH] App fully ready, hiding splash screen...');
             await SplashScreen.hide();
             console.log('✅ [SPLASH] Splash screen hidden successfully');
           } catch (error) {
             console.error('❌ [SPLASH] Error hiding splash screen:', error);
           }
           setIsLoading(false);
-        }, 3000);
+        }, 2000); // 2 seconds to ensure app is fully ready
 
         // Return cleanup function
         return () => {
@@ -507,18 +508,9 @@ const App: React.FC = () => {
     };
   }, [i18nextInstance]);
 
-  // Fix loading view
+  // Fix loading view - show nothing while splash screen is visible
   if (isLoading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
-        <p style={{ fontSize: 18, color: '#888' }}>Loading...</p>
-      </div>
-    );
+    return null;
   }
 
   try {
