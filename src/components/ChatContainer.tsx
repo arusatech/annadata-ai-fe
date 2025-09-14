@@ -224,6 +224,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       setDownloadSuccess(false);
 
       await llamaService.downloadModel(modelId, (progress: { loaded: number; total: number; percentage: number }) => {
+        console.log(`📊 Progress update received: ${progress.percentage}% (${progress.loaded}/${progress.total})`);
         setDownloadProgress(progress.percentage);
       });
 
@@ -676,18 +677,38 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
               )}
               {/* Debug info - remove after fixing */}
               {message.sender === 'bot' && (
-                <span 
-                  style={{ 
-                    fontSize: '10px', 
-                    color: downloadError ? 'red' : isDownloading ? 'orange' : 'green', 
-                    marginRight: '5px',
-                    cursor: downloadError || isDownloading ? 'help' : 'default'
-                  }}
-                  title={statusInfo.tooltip}
-                >
-                  {statusInfo.text}
-                  {/* serviceUnavailable={isServiceUnavailable.toString()} */}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginRight: '5px' }}>
+                  <span 
+                    style={{ 
+                      fontSize: '10px', 
+                      color: downloadError ? 'red' : isDownloading ? 'orange' : 'green', 
+                      marginBottom: '2px',
+                      cursor: downloadError || isDownloading ? 'help' : 'default'
+                    }}
+                    title={statusInfo.tooltip}
+                  >
+                    {statusInfo.text}
+                    {/* serviceUnavailable={isServiceUnavailable.toString()} */}
+                  </span>
+                  {/* Progress bar for downloads */}
+                  {(isDownloading || downloadingModel) && (
+                    <div style={{ 
+                      width: '80px', 
+                      height: '4px', 
+                      backgroundColor: '#e0e0e0', 
+                      borderRadius: '2px',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        width: `${downloadProgress}%`,
+                        height: '100%',
+                        backgroundColor: '#4CAF50',
+                        transition: 'width 0.3s ease',
+                        borderRadius: '2px'
+                      }} />
+                    </div>
+                  )}
+                </div>
               )}
               {/* Only show model dropdown for bot messages when service is unavailable */}
               {shouldShowModelDropdown(message) && (

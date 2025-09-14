@@ -703,10 +703,16 @@ export class LlamaService {
       
       console.log(`Downloading model ${modelId} from ${model.url} to ${downloadPath} (location: ${storageLocation})`);
 
+      // Debug platform detection
+      const platform = Capacitor.getPlatform();
+      console.log(`🔍 Platform detection: ${platform}`);
+
       // For web platform, use fetch with progress tracking
-      if (Capacitor.getPlatform() === 'web') {
+      if (platform === 'web') {
+        console.log(`🌐 Using web download method for platform: ${platform}`);
         await this.downloadModelWeb(model, downloadPath, onProgress, storageLocation);
       } else {
+        console.log(`📱 Using native download method for platform: ${platform}`);
         // For native platforms, use Capacitor HTTP with progress
         await this.downloadModelNative(model, downloadPath, onProgress, storageLocation);
       }
@@ -860,7 +866,7 @@ export class LlamaService {
   }
 
   /**
-   * Download model for web platform with streaming to reduce memory usage
+   * Download model using Capacitor File Transfer plugin
    */
   private async downloadModelWeb(
     model: LlamaModel, 
@@ -868,104 +874,91 @@ export class LlamaService {
     onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void,
     storageLocation?: string
   ): Promise<void> {
-    const response = await fetch(model.url!);
+    console.log(`🌐 Starting File Transfer download for: ${model.url}`);
+    console.log(`🌐 Download path: ${downloadPath}`);
+    console.log(`🌐 Storage location: ${storageLocation}`);
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const contentLength = response.headers.get('content-length');
-    const total = contentLength ? parseInt(contentLength, 10) : 0;
-    let loaded = 0;
-
-    if (!response.body) {
-      throw new Error('Response body is null');
-    }
-
-    const reader = response.body.getReader();
+    const { FileTransfer } = await import('@capacitor/file-transfer');
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
-    
-    // Create a temporary file for streaming
-    const tempPath = `${downloadPath}.tmp`;
     
     // Get the correct directory based on storage location
     const targetDirectory = this.getDirectoryForLocation(storageLocation);
     
     try {
+      // Initialize progress
+      if (onProgress) {
+        onProgress({ loaded: 0, total: 0, percentage: 0 });
+        console.log(`📊 Download started: 0%`);
+      }
       
-      // Initialize empty file
-      await Filesystem.writeFile({
-        path: tempPath,
-        data: '',
+      console.log(`📁 Getting full file path for: ${downloadPath} in directory: ${targetDirectory}`);
+      
+      // Get the full file path using Filesystem.getUri
+      const fileInfo = await Filesystem.getUri({
         directory: targetDirectory,
-        recursive: true
+        path: downloadPath
       });
-
-      const chunkSize = 256 * 1024; // 256KB chunks (reduced to prevent stack overflow)
-      let currentChunk: Uint8Array[] = [];
-      let currentChunkSize = 0;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          // Write any remaining data
-          if (currentChunk.length > 0) {
-            const finalChunk = this.concatenateChunks(currentChunk);
-            await this.appendToFile(tempPath, finalChunk, targetDirectory);
+      
+      console.log(`📁 Full file path: ${fileInfo.uri}`);
+      
+      // Set up progress listener
+      let progressListener: any = null;
+      if (onProgress) {
+        progressListener = await FileTransfer.addListener('progress', (progress) => {
+          if (progress.type === 'download' && progress.url === model.url) {
+            const percentage = progress.lengthComputable 
+              ? Math.round((progress.bytes / progress.contentLength) * 100)
+              : 0;
+            
+            console.log(`📊 Real progress: ${percentage}% (${progress.bytes}/${progress.contentLength})`);
+            onProgress({ 
+              loaded: progress.bytes, 
+              total: progress.contentLength, 
+              percentage 
+            });
           }
-          break;
+        });
+      }
+      
+      try {
+        // Use FileTransfer plugin to download the file
+        console.log(`🔄 Starting FileTransfer download...`);
+        const result = await FileTransfer.downloadFile({
+          url: model.url!,
+          path: fileInfo.uri,
+          progress: true
+        });
+        
+        console.log(`✅ FileTransfer download completed successfully`);
+        console.log(`📁 Downloaded to: ${result.path}`);
+        
+        // Final progress update
+        if (onProgress) {
+          onProgress({ loaded: 1, total: 1, percentage: 100 });
         }
         
-        currentChunk.push(value);
-        currentChunkSize += value.length;
-        loaded += value.length;
-        
-        // Write chunk when it reaches the target size
-        if (currentChunkSize >= chunkSize) {
-          const chunkData = this.concatenateChunks(currentChunk);
-          await this.appendToFile(tempPath, chunkData, targetDirectory);
-          
-          // Clear chunk buffer
-          currentChunk = [];
-          currentChunkSize = 0;
-          
-          // Force garbage collection if available
-          if (window.gc) {
-            window.gc();
-          }
-        }
-        
-        if (onProgress && total > 0) {
-          const percentage = Math.round((loaded / total) * 100);
-          onProgress({ loaded, total, percentage });
+        console.log(`✅ Model downloaded successfully to: ${result.path}`);
+
+      } finally {
+        // Clean up progress listener
+        if (progressListener) {
+          await progressListener.remove();
         }
       }
-
-      // Rename temp file to final file
-      await Filesystem.rename({
-        from: tempPath,
-        to: downloadPath,
-        directory: targetDirectory,
-        toDirectory: targetDirectory
-      });
 
     } catch (error) {
-      // Clean up temp file on error
-      try {
-        await Filesystem.deleteFile({
-          path: tempPath,
-          directory: targetDirectory
-        });
-      } catch (cleanupError) {
-        console.error('Failed to cleanup temp file:', cleanupError);
-      }
+      console.error('Failed to download model file:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown'
+      });
       throw error;
     }
   }
 
   /**
-   * Download model for native platforms with streaming
+   * Download model using Capacitor File Transfer plugin (same as web for consistency)
    */
   private async downloadModelNative(
     model: LlamaModel, 
@@ -973,96 +966,85 @@ export class LlamaService {
     onProgress?: (progress: { loaded: number; total: number; percentage: number }) => void,
     storageLocation?: string
   ): Promise<void> {
-    const response = await fetch(model.url!);
+    console.log(`📱 Starting File Transfer download for: ${model.url}`);
+    console.log(`📱 Download path: ${downloadPath}`);
+    console.log(`📱 Storage location: ${storageLocation}`);
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const contentLength = response.headers.get('content-length');
-    const total = contentLength ? parseInt(contentLength, 10) : 0;
-    let loaded = 0;
-
-    if (!response.body) {
-      throw new Error('Response body is null');
-    }
-
-    const reader = response.body.getReader();
+    const { FileTransfer } = await import('@capacitor/file-transfer');
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
-    
-    // Create a temporary file for streaming
-    const tempPath = `${downloadPath}.tmp`;
     
     // Get the correct directory based on storage location
     const targetDirectory = this.getDirectoryForLocation(storageLocation);
     
     try {
+      // Initialize progress
+      if (onProgress) {
+        onProgress({ loaded: 0, total: 0, percentage: 0 });
+        console.log(`📊 Download started: 0%`);
+      }
       
-      // Initialize empty file
-      await Filesystem.writeFile({
-        path: tempPath,
-        data: '',
+      console.log(`📁 Getting full file path for: ${downloadPath} in directory: ${targetDirectory}`);
+      
+      // Get the full file path using Filesystem.getUri
+      const fileInfo = await Filesystem.getUri({
         directory: targetDirectory,
-        recursive: true
+        path: downloadPath
       });
-
-      const chunkSize = 128 * 1024; // 128KB chunks for native (even smaller to be safe)
-      let currentChunk: Uint8Array[] = [];
-      let currentChunkSize = 0;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          // Write any remaining data
-          if (currentChunk.length > 0) {
-            const finalChunk = this.concatenateChunks(currentChunk);
-            await this.appendToFile(tempPath, finalChunk, targetDirectory);
+      
+      console.log(`📁 Full file path: ${fileInfo.uri}`);
+      
+      // Set up progress listener
+      let progressListener: any = null;
+      if (onProgress) {
+        progressListener = await FileTransfer.addListener('progress', (progress) => {
+          if (progress.type === 'download' && progress.url === model.url) {
+            const percentage = progress.lengthComputable 
+              ? Math.round((progress.bytes / progress.contentLength) * 100)
+              : 0;
+            
+            console.log(`📊 Real progress: ${percentage}% (${progress.bytes}/${progress.contentLength})`);
+            onProgress({ 
+              loaded: progress.bytes, 
+              total: progress.contentLength, 
+              percentage 
+            });
           }
-          break;
+        });
+      }
+      
+      try {
+        // Use FileTransfer plugin to download the file
+        console.log(`🔄 Starting FileTransfer download...`);
+        const result = await FileTransfer.downloadFile({
+          url: model.url!,
+          path: fileInfo.uri,
+          progress: true
+        });
+        
+        console.log(`✅ FileTransfer download completed successfully`);
+        console.log(`📁 Downloaded to: ${result.path}`);
+        
+        // Final progress update
+        if (onProgress) {
+          onProgress({ loaded: 1, total: 1, percentage: 100 });
         }
         
-        currentChunk.push(value);
-        currentChunkSize += value.length;
-        loaded += value.length;
-        
-        // Write chunk when it reaches the target size
-        if (currentChunkSize >= chunkSize) {
-          const chunkData = this.concatenateChunks(currentChunk);
-          await this.appendToFile(tempPath, chunkData, targetDirectory);
-          
-          // Clear chunk buffer
-          currentChunk = [];
-          currentChunkSize = 0;
-          
-          // Add small delay to prevent overwhelming the system
-          await new Promise(resolve => setTimeout(resolve, 10));
-        }
-        
-        if (onProgress && total > 0) {
-          const percentage = Math.round((loaded / total) * 100);
-          onProgress({ loaded, total, percentage });
+        console.log(`✅ Model downloaded successfully to: ${result.path}`);
+
+      } finally {
+        // Clean up progress listener
+        if (progressListener) {
+          await progressListener.remove();
         }
       }
-
-      // Rename temp file to final file
-      await Filesystem.rename({
-        from: tempPath,
-        to: downloadPath,
-        directory: targetDirectory,
-        toDirectory: targetDirectory
-      });
 
     } catch (error) {
-      // Clean up temp file on error
-      try {
-        await Filesystem.deleteFile({
-          path: tempPath,
-          directory: targetDirectory
-        });
-      } catch (cleanupError) {
-        console.error('Failed to cleanup temp file:', cleanupError);
-      }
+      console.error('Failed to download model file:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown'
+      });
       throw error;
     }
   }
@@ -1711,7 +1693,12 @@ export class LlamaService {
       // Handle both string and object responses
       const formattedPrompt = typeof result === 'string' ? result : (result?.prompt || result || '');
       
-      console.log(`✅ [LOCAL DEBUG] Chat formatted successfully with safe wrapper:`, formattedPrompt);
+      console.log(`✅ [LOCAL DEBUG] Chat formatted successfully with safe wrapper:`, {
+        has_media: result?.has_media || false,
+        media_paths: result?.media_paths || [],
+        prompt: formattedPrompt,
+        type: result?.type || 'unknown'
+      });
       return formattedPrompt;
       
     } catch (error: any) {
@@ -1817,7 +1804,21 @@ export class LlamaService {
       }
 
       // Format the chat messages
-      const formattedPrompt = await this.getFormattedChat(messages);
+      const formattedPromptResult = await this.getFormattedChat(messages);
+      
+      // Extract the actual prompt string from the result
+      const formattedPrompt = typeof formattedPromptResult === 'string' 
+        ? formattedPromptResult 
+        : ((formattedPromptResult as any)?.prompt || String(formattedPromptResult) || '');
+      
+      // Validate that we have a valid string
+      if (typeof formattedPrompt !== 'string' || formattedPrompt.length === 0) {
+        throw new Error(`Invalid formatted prompt: expected string, got ${typeof formattedPrompt}. Result: ${JSON.stringify(formattedPromptResult)}`);
+      }
+      
+      console.log(`🔄 [LOCAL DEBUG] Formatted prompt preview:`, formattedPrompt.substring(0, 200) + '...');
+      console.log(`🔄 [LOCAL DEBUG] Formatted prompt type:`, typeof formattedPrompt);
+      console.log(`🔄 [LOCAL DEBUG] Formatted prompt length:`, formattedPrompt.length);
       
       // Prepare completion parameters with better defaults
       const completionParams: CompletionParams = {

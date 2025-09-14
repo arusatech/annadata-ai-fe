@@ -95,8 +95,8 @@
   color: #000;
   margin-right: auto;
   border-bottom-left-radius: 4px;
-  max-width: 100%; /* Bot messages now occupy full width */
-  width: 100%; /* Ensure full width */
+  max-width: 90%; /* Responsive width for bot messages */
+  width: auto; /* Allow natural width */
 }
 
 .error-message {
@@ -199,4 +199,42 @@
 
 .bot-message .message-time {
   text-align: left;
+}
+
+/* Mobile responsive styles for messages */
+@media (max-width: 768px) {
+  .message {
+    max-width: 95%;
+    padding: 10px 12px;
+    margin: 6px 0;
+  }
+  
+  .user-message {
+    max-width: 85%;
+  }
+  
+  .bot-message {
+    max-width: 95%;
+  }
+}
+
+@media (max-width: 480px) {
+  .message {
+    max-width: 98%;
+    padding: 8px 10px;
+    margin: 4px 0;
+    font-size: 14px;
+  }
+  
+  .user-message {
+    max-width: 90%;
+  }
+  
+  .bot-message {
+    max-width: 98%;
+  }
+  
+  .message-content {
+    line-height: 1.4;
+  }
 }
