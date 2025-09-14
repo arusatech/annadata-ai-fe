@@ -127,7 +127,7 @@ const MenuContainer: React.FC<MenuContainerProps> = ({ isUserLoggedIn, isOffline
           className="menu-title" 
           id="title" 
           data-default-message="AnnaData (ai)™" 
-          style={{ textAlign: 'left', marginRight: '2px' }}
+          style={{ textAlign: 'center', marginRight: '2px' }}
           onClick={(e) => {
             // Check if the clicked element is the AI superscript
             if (e.target instanceof HTMLElement && e.target.classList.contains('ai-offline')) {
