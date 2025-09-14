@@ -218,15 +218,6 @@ export class LlamaService {
       url: 'https://huggingface.co/QuantFactory/Biggie-SmoLlm-0.15B-Base-GGUF/resolve/main/Biggie-SmoLlm-0.15B-Base.Q8_0.gguf'
     },
     {
-        id: 'llama_2',
-        name: 'llama-2',
-        sizeMB: 4370,
-        status: 'available',
-        description: 'Small 7B model for basic testing',
-        url: 'https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf',
-    },
-    // New models added
-    {
       id: 'lai_img2txt',
       name: 'LAI-Img2Txt',
       sizeMB: 670,
@@ -234,119 +225,127 @@ export class LlamaService {
       description: 'LiquidAI LFM2 Vision Language model for image-to-text',
       url: 'https://huggingface.co/LiquidAI/LFM2-VL-1.6B-GGUF/resolve/main/LFM2-VL-1.6B-Q4_0.gguf'
     },
-    {
-      id: 'tao_phy',
-      name: 'Tao-Physics',
-      sizeMB: 4475,
-      status: 'available',
-      description: 'TaoGPT vision language model',
-      url: 'https://huggingface.co/agency888/TaoGPT-v1-GGUF-GGUF/resolve/main/taogpt-v1-gguf.Q4_K_M.gguf'
-    },
-    {
-      id: 'hermes_vl',
-      name: 'Hermes-Vision',
-      sizeMB: 3154,
-      status: 'available',
-      description: 'NousResearch Hermes 2 Vision model',
-      url: 'https://huggingface.co/PsiPi/NousResearch_Nous-Hermes-2-Vision-GGUF/resolve/main/NousResearch_Nous-Hermes-2-Vision-GGUF_Q2_K.gguf'
-    },
-    {
-      id: 'hermes_mistral',
-      name: 'Hermes-Mistral',
-      sizeMB: 3154,
-      status: 'available',
-      description: 'NousResearch Hermes 2 Mistral model',
-      url: 'https://huggingface.co/PsiPi/NousResearch_Nous-Hermes-2-Mistral-GGUF/resolve/main/NousResearch_Nous-Hermes-2-Mistral-GGUF_Q2_K.gguf'
-    },
-    {
-      id: 'open_hermes2',
-      name: 'Open-Hermes2',
-      sizeMB: 3604,
-      status: 'available',
-      description: 'OpenHermes V2 Portuguese Brazil model',
-      url: 'https://huggingface.co/BornSaint/OpenHermesV2-PTBR-portuguese-brazil-gguf/resolve/main/ggml-OpenHermesV2-PTBR-Q3_K_M.gguf'
-    },
-    {
-      id: 'mistral_ai',
-      name: 'Mistral-AI',
-      sizeMB: 3236,
-      status: 'available',
-      description: 'Mistral 7B v0.1 model',
-      url: 'https://huggingface.co/TheBloke/Mistral-7B-v0.1-GGUF/resolve/main/mistral-7b-v0.1.Q3_K_S.gguf'
-    },
+    // {
+    //     id: 'llama_2',
+    //     name: 'llama-2',
+    //     sizeMB: 4370,
+    //     status: 'available',
+    //     description: 'Small 7B model for basic testing',
+    //     url: 'https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf',
+    // },
+    // {
+    //   id: 'tao_phy',
+    //   name: 'Tao-Physics',
+    //   sizeMB: 4475,
+    //   status: 'available',
+    //   description: 'TaoGPT vision language model',
+    //   url: 'https://huggingface.co/agency888/TaoGPT-v1-GGUF-GGUF/resolve/main/taogpt-v1-gguf.Q4_K_M.gguf'
+    // },
+    // {
+    //   id: 'hermes_vl',
+    //   name: 'Hermes-Vision',
+    //   sizeMB: 3154,
+    //   status: 'available',
+    //   description: 'NousResearch Hermes 2 Vision model',
+    //   url: 'https://huggingface.co/PsiPi/NousResearch_Nous-Hermes-2-Vision-GGUF/resolve/main/NousResearch_Nous-Hermes-2-Vision-GGUF_Q2_K.gguf'
+    // },
+    // {
+    //   id: 'hermes_mistral',
+    //   name: 'Hermes-Mistral',
+    //   sizeMB: 3154,
+    //   status: 'available',
+    //   description: 'NousResearch Hermes 2 Mistral model',
+    //   url: 'https://huggingface.co/PsiPi/NousResearch_Nous-Hermes-2-Mistral-GGUF/resolve/main/NousResearch_Nous-Hermes-2-Mistral-GGUF_Q2_K.gguf'
+    // },
+    // {
+    //   id: 'open_hermes2',
+    //   name: 'Open-Hermes2',
+    //   sizeMB: 3604,
+    //   status: 'available',
+    //   description: 'OpenHermes V2 Portuguese Brazil model',
+    //   url: 'https://huggingface.co/BornSaint/OpenHermesV2-PTBR-portuguese-brazil-gguf/resolve/main/ggml-OpenHermesV2-PTBR-Q3_K_M.gguf'
+    // },
+    // {
+    //   id: 'mistral_ai',
+    //   name: 'Mistral-AI',
+    //   sizeMB: 3236,
+    //   status: 'available',
+    //   description: 'Mistral 7B v0.1 model',
+    //   url: 'https://huggingface.co/TheBloke/Mistral-7B-v0.1-GGUF/resolve/main/mistral-7b-v0.1.Q3_K_S.gguf'
+    // },
     
-    {
-      id: 'smol_1_7',
-      name: 'Smol-17b',
-      sizeMB: 1434,
-      status: 'available',
-      description: 'SmolLM 1.7B model',
-      url: 'https://huggingface.co/mradermacher/SmolLM-1.7B-GGUF/resolve/main/SmolLM-1.7B.Q6_K.gguf'
-    },
-    {
-      id: 'moondream2_f16',
-      name: 'Moondream2',
-      sizeMB: 2908,
-      status: 'available',
-      description: 'Moondream2 text model with Vicuna architecture',
-      url: 'https://huggingface.co/ggml-org/moondream2-20250414-GGUF/resolve/main/moondream2-text-model-f16_ct-vicuna.gguf'
-    },
-    {
-      id: 'glm_edge',
-      name: 'GLM Edge',
-      sizeMB: 1167,
-      status: 'available',
-      description: 'GLM Edge 1.5B chat model',
-      url: 'https://huggingface.co/mradermacher/glm-edge-1.5b-chat-i1-GGUF/resolve/main/glm-edge-1.5b-chat.i1-Q5_K_M.gguf'
-    },
-    {
-      id: 'liq2',
-      name: 'Liq2',
-      sizeMB: 1280,
-      status: 'available',
-      description: 'Luth LFM2 1.2B model',
-      url: 'https://huggingface.co/kurakurai/Luth-LFM2-1.2B-GGUF/resolve/main/Luth-LFM2-1.2B-Q8_0.gguf'
-    },
-    {
-      id: 'minicpm',
-      name: 'MiniCPM',
-      sizeMB: 5151,
-      status: 'available',
-      description: 'MiniCPM V 4.5 vision language model',
-      url: 'https://huggingface.co/openbmb/MiniCPM-V-4_5-gguf/resolve/main/ggml-model-Q4_K_M.gguf'
-    },
-    {
-      id: 'qwen2_vl',
-      name: 'Qwen2-VL',
-      sizeMB: 1157,
-      status: 'available',
-      description: 'Qwen2 VL 2B Instruct model',
-      url: 'https://huggingface.co/bartowski/Qwen2-VL-2B-Instruct-GGUF/resolve/main/Qwen2-VL-2B-Instruct-Q5_K_M.gguf'
-    },
-    {
-      id: 'liq2_vl',
-      name: 'Liq2-VL',
-      sizeMB: 1280,
-      status: 'available',
-      description: 'LiquidAI LFM2 VL 1.6B model',
-      url: 'https://huggingface.co/LiquidAI/LFM2-VL-1.6B-GGUF/resolve/main/LFM2-VL-1.6B-Q8_0.gguf'
-    },
-    {
-      id: 'bunny_v1',
-      name: 'Bunny v1.0',
-      sizeMB: 2458,
-      status: 'available',
-      description: 'BAAI Bunny v1.0 4B model',
-      url: 'https://huggingface.co/BAAI/Bunny-v1_0-4B-gguf/resolve/main/ggml-model-Q4_K_M.gguf'
-    },
-    {
-      id: 'llava_v1_6',
-      name: 'Llava v1.6',
-      sizeMB: 2591,
-      status: 'available',
-      description: 'Llava v1.6 Vicuna 7B model',
-      url: 'https://huggingface.co/second-state/Llava-v1.6-Vicuna-7B-GGUF/resolve/main/llava-v1.6-vicuna-7b-Q2_K.gguf'
-    }
+    // {
+    //   id: 'smol_1_7',
+    //   name: 'Smol-17b',
+    //   sizeMB: 1434,
+    //   status: 'available',
+    //   description: 'SmolLM 1.7B model',
+    //   url: 'https://huggingface.co/mradermacher/SmolLM-1.7B-GGUF/resolve/main/SmolLM-1.7B.Q6_K.gguf'
+    // },
+    // {
+    //   id: 'moondream2_f16',
+    //   name: 'Moondream2',
+    //   sizeMB: 2908,
+    //   status: 'available',
+    //   description: 'Moondream2 text model with Vicuna architecture',
+    //   url: 'https://huggingface.co/ggml-org/moondream2-20250414-GGUF/resolve/main/moondream2-text-model-f16_ct-vicuna.gguf'
+    // },
+    // {
+    //   id: 'glm_edge',
+    //   name: 'GLM Edge',
+    //   sizeMB: 1167,
+    //   status: 'available',
+    //   description: 'GLM Edge 1.5B chat model',
+    //   url: 'https://huggingface.co/mradermacher/glm-edge-1.5b-chat-i1-GGUF/resolve/main/glm-edge-1.5b-chat.i1-Q5_K_M.gguf'
+    // },
+    // {
+    //   id: 'liq2',
+    //   name: 'Liq2',
+    //   sizeMB: 1280,
+    //   status: 'available',
+    //   description: 'Luth LFM2 1.2B model',
+    //   url: 'https://huggingface.co/kurakurai/Luth-LFM2-1.2B-GGUF/resolve/main/Luth-LFM2-1.2B-Q8_0.gguf'
+    // },
+    // {
+    //   id: 'minicpm',
+    //   name: 'MiniCPM',
+    //   sizeMB: 5151,
+    //   status: 'available',
+    //   description: 'MiniCPM V 4.5 vision language model',
+    //   url: 'https://huggingface.co/openbmb/MiniCPM-V-4_5-gguf/resolve/main/ggml-model-Q4_K_M.gguf'
+    // },
+    // {
+    //   id: 'qwen2_vl',
+    //   name: 'Qwen2-VL',
+    //   sizeMB: 1157,
+    //   status: 'available',
+    //   description: 'Qwen2 VL 2B Instruct model',
+    //   url: 'https://huggingface.co/bartowski/Qwen2-VL-2B-Instruct-GGUF/resolve/main/Qwen2-VL-2B-Instruct-Q5_K_M.gguf'
+    // },
+    // {
+    //   id: 'liq2_vl',
+    //   name: 'Liq2-VL',
+    //   sizeMB: 1280,
+    //   status: 'available',
+    //   description: 'LiquidAI LFM2 VL 1.6B model',
+    //   url: 'https://huggingface.co/LiquidAI/LFM2-VL-1.6B-GGUF/resolve/main/LFM2-VL-1.6B-Q8_0.gguf'
+    // },
+    // {
+    //   id: 'bunny_v1',
+    //   name: 'Bunny v1.0',
+    //   sizeMB: 2458,
+    //   status: 'available',
+    //   description: 'BAAI Bunny v1.0 4B model',
+    //   url: 'https://huggingface.co/BAAI/Bunny-v1_0-4B-gguf/resolve/main/ggml-model-Q4_K_M.gguf'
+    // },
+    // {
+    //   id: 'llava_v1_6',
+    //   name: 'Llava v1.6',
+    //   sizeMB: 2591,
+    //   status: 'available',
+    //   description: 'Llava v1.6 Vicuna 7B model',
+    //   url: 'https://huggingface.co/second-state/Llava-v1.6-Vicuna-7B-GGUF/resolve/main/llava-v1.6-vicuna-7b-Q2_K.gguf'
+    // },
   ];
   private downloadedModels: LlamaModel[] = [];
   private currentModel: string | null = null;
