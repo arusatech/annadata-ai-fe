@@ -244,7 +244,26 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       
     } catch (error) {
       console.error(`Failed to download model ${modelId}:`, error);
-      const errorMessage = `Failed to download model ${modelId}. Please check your internet connection and try again.`;
+      
+      let errorMessage = `Failed to download model ${modelId}. `;
+      
+      // Provide specific error messages based on the error type
+      if (error instanceof Error) {
+        if (error.message.includes('Storage permissions') || error.message.includes('Permission denied')) {
+          errorMessage += 'Storage permissions are required. Please grant storage permissions to the app in Android settings and try again.';
+        } else if (error.message.includes('filesystem error') || error.message.includes('create_directories')) {
+          errorMessage += 'Storage access error. Please check app permissions in Android settings and try again.';
+        } else if (error.message.includes('internet') || error.message.includes('network') || error.message.includes('connection')) {
+          errorMessage += 'Please check your internet connection and try again.';
+        } else if (error.message.includes('Download preparation failed')) {
+          errorMessage += 'Download preparation failed. Please check your internet connection and storage permissions, then try again.';
+        } else {
+          errorMessage += `Error: ${error.message}`;
+        }
+      } else {
+        errorMessage += 'Please check your internet connection and try again.';
+      }
+      
       setDownloadError(errorMessage);
       
       // Show error message in chat (you can customize this)
@@ -311,6 +330,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     return message.sender === 'bot' && isServiceUnavailable;
   };
 
+  // Helper function to convert MB to GB with x.yG format
+  const formatSizeInGB = (sizeMB: number): string => {
+    const sizeGB = sizeMB / 1024;
+    return `${sizeGB.toFixed(1)}G`;
+  };
+
   // Get model options for dropdown
   const getModelOptions = (): Array<{ value: string; label: string; disabled: boolean }> => {
     const options = [
@@ -335,7 +360,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       if (!downloadedModels.find(dm => dm.id === model.id)) {
         options.push({
           value: model.id,
-          label: `⬇️ ${model.name} (${model.sizeMB}MB)`,
+          label: `⬇️ ${model.name} (${formatSizeInGB(model.sizeMB)})`,
           disabled: false
         });
       }

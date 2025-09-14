@@ -25,14 +25,17 @@
   justify-content: space-between;
   align-items: center;
   background-color: #f5f5f5;
-  padding: 10px 20px;
+  padding-top: 10px;
+  padding-bottom: 0px;
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  /* Add additional top margin to move menu-bar down */
-  margin-top: 12px; /* Increased from 3px to 12px to move menu-bar down */
   /* Remove any potential borders or outlines */
   border: none !important;
   outline: none !important;
+  /* Additional focus and selection prevention */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-focus-ring-color: transparent;
+  -moz-outline: none;
 }
 
 .menu-title {
@@ -64,10 +67,22 @@
   /* Remove any potential borders or outlines */
   border: none !important;
   outline: none !important;
+  /* Additional focus prevention */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-focus-ring-color: transparent;
+  -moz-outline: none;
 }
 
 .menu-icon:hover {
   background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Remove focus outlines from menu icons */
+.menu-icon:focus,
+.menu-icon:active {
+  outline: none !important;
+  border: none !important;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Tractor icon specific positioning */
