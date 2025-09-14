@@ -129,10 +129,10 @@ body {
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
-  padding: 2px;
+  padding-bottom: 0px;
   box-sizing: border-box;
   /* Safe area padding for camera devices */
-  padding-top: max(2px, calc(env(safe-area-inset-top, 20px) * 0.5)); 
+  padding-top: max(4px, calc(env(safe-area-inset-top, 20px) * 0.5)); 
   margin-top: max(5px, calc(env(safe-area-inset-top, 20px) * 0.4));
 }
 
@@ -141,7 +141,11 @@ body {
   justify-content: space-between;
   align-items: center;
   background-color: #f5f5f5;
-  padding: 10px 20px;
+  /* padding: 10px 20px; */
+  padding-top: 5px;
+  padding-bottom: 0px;
+  padding-left: 10px;
+  padding-right: 10px;
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -152,7 +156,7 @@ body {
   color: #333;
   margin: 0;
   flex: 1;
-  text-align: left;
+  text-align: center;
 }
 
 .menu-icons {
