@@ -211,7 +211,7 @@ export class LlamaService {
     },
     {
       id: 'smol_0_1',
-      name: 'SmoL-015',
+      name: 'Smol-015',
       sizeMB: 164,
       status: 'available',
       description: 'Biggie SmoLlm 0.15B Base model',
@@ -229,7 +229,7 @@ export class LlamaService {
     {
       id: 'lai_img2txt',
       name: 'LAI-Img2Txt',
-      sizeMB: 2048,
+      sizeMB: 670,
       status: 'available',
       description: 'LiquidAI LFM2 Vision Language model for image-to-text',
       url: 'https://huggingface.co/LiquidAI/LFM2-VL-1.6B-GGUF/resolve/main/LFM2-VL-1.6B-Q4_0.gguf'
@@ -244,7 +244,7 @@ export class LlamaService {
     },
     {
       id: 'hermes_vl',
-      name: 'HermesVision',
+      name: 'Hermes-Vision',
       sizeMB: 3154,
       status: 'available',
       description: 'NousResearch Hermes 2 Vision model',
