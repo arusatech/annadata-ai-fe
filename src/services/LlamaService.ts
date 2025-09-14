@@ -1557,8 +1557,310 @@ export class LlamaService {
       throw error;
     }
   }
+
+  /**
+   * Check if the model supports chat templates based on the loaded context
+   */
+  async checkChatTemplateSupport(): Promise<boolean> {
+    try {
+      if (!this.llamaContext) {
+        return false;
+      }
+
+      console.log(`🔍 [LOCAL DEBUG] Checking chat template support...`);
+      console.log(`🔍 [LOCAL DEBUG] llamaContext type:`, typeof this.llamaContext);
+      console.log(`🔍 [LOCAL DEBUG] llamaContext keys:`, Object.keys(this.llamaContext));
+      
+      // Check if model property exists and its structure
+      if (this.llamaContext.model) {
+        console.log(`🔍 [LOCAL DEBUG] model type:`, typeof this.llamaContext.model);
+        console.log(`🔍 [LOCAL DEBUG] model is array:`, Array.isArray(this.llamaContext.model));
+        
+        // If model is an object, check for chat template properties
+        if (typeof this.llamaContext.model === 'object' && !Array.isArray(this.llamaContext.model)) {
+          console.log(`🔍 [LOCAL DEBUG] model object keys:`, Object.keys(this.llamaContext.model));
+          
+          // Check if the model has chat templates
+          if (this.llamaContext.model.chatTemplates) {
+            console.log(`✅ [LOCAL DEBUG] Model has chat templates:`, Object.keys(this.llamaContext.model.chatTemplates));
+            return true;
+          }
+          
+          // Check if isChatTemplateSupported property exists
+          if (this.llamaContext.model.isChatTemplateSupported) {
+            console.log(`✅ [LOCAL DEBUG] Model supports chat templates: ${this.llamaContext.model.isChatTemplateSupported}`);
+            return this.llamaContext.model.isChatTemplateSupported;
+          }
+        }
+      }
+      
+      // Check if getFormattedChat method exists on the context itself
+      if (typeof this.llamaContext.getFormattedChat === 'function') {
+        console.log(`✅ [LOCAL DEBUG] getFormattedChat method available on context`);
+        return true;
+      }
+      
+      // Check for other possible properties that might indicate chat support
+      const contextKeys = Object.keys(this.llamaContext);
+      console.log(`🔍 [LOCAL DEBUG] Context properties:`, contextKeys);
+      
+      // Look for any chat-related properties
+      const chatRelatedProps = contextKeys.filter(key => 
+        key.toLowerCase().includes('chat') || 
+        key.toLowerCase().includes('template') ||
+        key.toLowerCase().includes('format')
+      );
+      
+      if (chatRelatedProps.length > 0) {
+        console.log(`🔍 [LOCAL DEBUG] Found chat-related properties:`, chatRelatedProps);
+      }
+      
+      return false;
+    } catch (error: any) {
+      console.log(`⚠️ [LOCAL DEBUG] Error checking chat template support:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * ARCHITECTURAL FIX: Safe wrapper for getFormattedChat that handles the plugin bug
+   * This fixes the destructuring error in the plugin's isJinjaSupported() method
+   */
+  async getFormattedChatSafe(messages: CompletionMessage[]): Promise<string> {
+    try {
+      if (!this.llamaContext) {
+        throw new Error('No model loaded. Please load a model first.');
+      }
+
+      console.log(`🔄 [LOCAL DEBUG] Formatting chat messages with safe wrapper:`, messages);
+      
+      // ARCHITECTURAL FIX: Patch the model object to prevent destructuring errors
+      const originalModel = this.llamaContext.model;
+      
+      // Check if model is a string (which it is in this case)
+      if (typeof originalModel === 'string') {
+        console.log(`🔧 [PLUGIN FIX] Model is a string, creating object wrapper to prevent destructuring error`);
+        
+        // Create a proper model object with chatTemplates
+        this.llamaContext.model = {
+          path: originalModel,
+          size: 0,
+          nEmbd: 0,
+          nParams: 0,
+          desc: 'Loaded model',
+          chatTemplates: {
+            llamaChat: false,
+            minja: {
+              default: false,
+              defaultCaps: {
+                tools: false,
+                toolCalls: false,
+                toolResponses: false,
+                systemRole: false,
+                parallelToolCalls: false,
+                toolCallId: false
+              },
+              toolUse: false,
+              toolUseCaps: {
+                tools: false,
+                toolCalls: false,
+                toolResponses: false,
+                systemRole: false,
+                parallelToolCalls: false,
+                toolCallId: false
+              }
+            }
+          }
+        };
+      } else if (!originalModel.chatTemplates) {
+        console.log(`🔧 [PLUGIN FIX] Patching model.chatTemplates to prevent destructuring error`);
+        originalModel.chatTemplates = {
+          llamaChat: false,
+          minja: {
+            default: false,
+            defaultCaps: {
+              tools: false,
+              toolCalls: false,
+              toolResponses: false,
+              systemRole: false,
+              parallelToolCalls: false,
+              toolCallId: false
+            },
+            toolUse: false,
+            toolUseCaps: {
+              tools: false,
+              toolCalls: false,
+              toolResponses: false,
+              systemRole: false,
+              parallelToolCalls: false,
+              toolCallId: false
+            }
+          }
+        };
+      }
+      
+      // Now call getFormattedChat with jinja disabled to use fallback formatting
+      const result = await this.llamaContext.getFormattedChat(
+        messages,
+        null, // Use default template
+        {
+          jinja: false, // Disable jinja to prevent the isJinjaSupported() call
+          add_generation_prompt: true
+        }
+      );
+      
+      // Handle both string and object responses
+      const formattedPrompt = typeof result === 'string' ? result : (result?.prompt || result || '');
+      
+      console.log(`✅ [LOCAL DEBUG] Chat formatted successfully with safe wrapper:`, formattedPrompt);
+      return formattedPrompt;
+      
+    } catch (error: any) {
+      console.error(`❌ [LOCAL DEBUG] Error in safe wrapper:`, error);
+      
+      // Fallback to manual formatting
+      console.log(`🔄 [LOCAL DEBUG] Falling back to manual chat formatting`);
+      return this.formatChatMessagesFallback(messages);
+    }
+  }
+
+  /**
+   * Format chat messages using the correct API with architectural fixes
+   */
+  async getFormattedChat(messages: CompletionMessage[]): Promise<string> {
+    try {
+      if (!this.llamaContext) {
+        throw new Error('No model loaded. Please load a model first.');
+      }
+
+      console.log(`🔄 [LOCAL DEBUG] Formatting chat messages:`, messages);
+      
+      // Use the safe wrapper that fixes the plugin bug
+      return await this.getFormattedChatSafe(messages);
+      
+    } catch (error: any) {
+      console.error(`❌ [LOCAL DEBUG] Error formatting chat messages:`, error);
+      
+      // Fallback to manual formatting on error
+      console.log(`🔄 [LOCAL DEBUG] Falling back to manual chat formatting due to error`);
+      return this.formatChatMessagesFallback(messages);
+    }
+  }
+
+  /**
+   * Fallback method to manually format chat messages with improved formatting
+   */
+  private formatChatMessagesFallback(messages: CompletionMessage[]): string {
+    try {
+      let formattedPrompt = '';
+      
+      // Add a simple system message if not present
+      const hasSystemMessage = messages.some(msg => msg.role === 'system');
+      if (!hasSystemMessage) {
+        formattedPrompt += 'You are a helpful AI assistant. Please provide clear and helpful responses.\n\n';
+      }
+      
+      for (const message of messages) {
+        const role = message.role;
+        const content = typeof message.content === 'string' 
+          ? message.content 
+          : message.content.map(item => item.text || '').join('');
+        
+        switch (role) {
+          case 'system':
+            formattedPrompt += `System: ${content}\n\n`;
+            break;
+          case 'user':
+            formattedPrompt += `Human: ${content}\n\n`;
+            break;
+          case 'assistant':
+            formattedPrompt += `Assistant: ${content}\n\n`;
+            break;
+        }
+      }
+      
+      // Add the assistant prompt
+      formattedPrompt += 'Assistant: ';
+      
+      console.log(`✅ [LOCAL DEBUG] Fallback chat formatting completed:`, formattedPrompt);
+      return formattedPrompt;
+    } catch (error: any) {
+      console.error(`❌ [LOCAL DEBUG] Error in fallback chat formatting:`, error);
+      
+      // Ultimate fallback - just use the user message
+      const userMessage = messages.find(msg => msg.role === 'user');
+      if (userMessage) {
+        const content = typeof userMessage.content === 'string' 
+          ? userMessage.content 
+          : userMessage.content.map(item => item.text || '').join('');
+        console.log(` [LOCAL DEBUG] Using ultimate fallback with user message only`);
+        return content;
+      }
+      
+      throw new Error(`Failed to format chat messages: ${error.message}`);
+    }
+  }
+
+  /**
+   * Generate text completion using formatted chat messages with improved error handling
+   * Based on the llama-cpp-capacitor documentation
+   */
+  async completionWithFormattedChat(
+    messages: CompletionMessage[],
+    params: Omit<CompletionParams, 'prompt' | 'messages'> = {},
+    onToken?: (token: TokenData) => void
+  ): Promise<CompletionResult> {
+    try {
+      console.log(`🔄 [LOCAL DEBUG] Starting completion with formatted chat`);
+      
+      if (!this.llamaContext) {
+        throw new Error('No model loaded. Please load a model first.');
+      }
+
+      // Format the chat messages
+      const formattedPrompt = await this.getFormattedChat(messages);
+      
+      // Prepare completion parameters with better defaults
+      const completionParams: CompletionParams = {
+        prompt: formattedPrompt,
+        n_predict: 256,
+        temperature: 0.7,
+        top_p: 0.9,
+        top_k: 40,
+        repeat_penalty: 1.1,
+        stop: ['</s>', '<|end|>', '<|eot_id|>', '<|end_of_text|>', '<|im_end|>', 'Human:', 'User:', 'System:'],
+        ...params
+      };
+
+      console.log(`🔄 [LOCAL DEBUG] Generating completion with formatted prompt length:`, formattedPrompt.length);
+      console.log(`🔄 [LOCAL DEBUG] Completion params:`, {
+        n_predict: completionParams.n_predict,
+        temperature: completionParams.temperature,
+        top_p: completionParams.top_p,
+        stop: completionParams.stop
+      });
+      
+      const result = await this.llamaContext.completion(completionParams, onToken);
+
+      console.log(`✅ [LOCAL DEBUG] Completion generated successfully`);
+      console.log(`✅ [LOCAL DEBUG] Result keys:`, Object.keys(result));
+      console.log(`✅ [LOCAL DEBUG] Response length:`, (result.text || result.content || '').length);
+
+      // Transform the result to match our interface
+      return {
+        ...result,
+        generation_settings: completionParams
+      };
+    } catch (error: any) {
+      console.error(`❌ [LOCAL DEBUG] Error in completion with formatted chat:`, error);
+      console.error(`❌ [LOCAL DEBUG] Error details:`, {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      throw error;
+    }
+  }
 }
 
-// Export singleton instance
-export default LlamaService.getInstance();
-
+export default LlamaService;

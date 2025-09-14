@@ -84,7 +84,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
   const isInitializedRef = useRef<boolean>(false);
 
   // Add LlamaService reference
-  const [llamaService] = useState(() => LlamaService);
+  const [llamaService] = useState(() => LlamaService.getInstance());
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -861,6 +861,11 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
       try {
         await llamaService.loadModel(selectedModel);
         console.log(`✅ [LOCAL DEBUG] Model ${selectedModel} loaded successfully`);
+        
+        // Check chat template support after model is loaded
+        const hasTemplateSupport = await llamaService.checkChatTemplateSupport();
+        console.log(`🔍 [LOCAL DEBUG] Chat template support: ${hasTemplateSupport}`);
+        
       } catch (error: any) {
         console.error(`❌ [LOCAL DEBUG] Failed to load model ${selectedModel}:`, error);
         
@@ -888,24 +893,34 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
         return false;
       }
 
-      // Generate response using the local model
-      const completionParams = {
-        prompt: messageText,
+      // Prepare chat messages for getFormattedChat
+      const chatMessages = [
+        {
+          role: 'system' as const,
+          content: 'You are a helpful AI assistant. Provide clear, concise, and helpful responses to user questions.'
+        },
+        {
+          role: 'user' as const,
+          content: messageText
+        }
+      ];
+
+      console.log(`🔄 [LOCAL DEBUG] Generating response for: "${messageText}" using getFormattedChat`);
+      console.log(` [LOCAL DEBUG] Chat messages prepared:`, chatMessages);
+      
+      // Use the new completionWithFormattedChat method
+      const result = await llamaService.completionWithFormattedChat(chatMessages, {
         n_predict: 256,
         temperature: 0.7,
         top_p: 0.9,
         stop: ['</s>', '<|end|>', '<|eot_id|>', '<|end_of_text|>', '<|im_end|>']
-      };
-
-      console.log(`🔄 [LOCAL DEBUG] Generating response for: "${messageText}"`);
-      
-      const result = await llamaService.completion(completionParams);
+      });
       
       // Check for response content in both text and content fields
       const responseText = result.text || result.content || '';
       
       if (responseText.trim()) {
-        console.log(`✅ [LOCAL DEBUG] Local response generated:`, responseText);
+        console.log(`✅ [LOCAL DEBUG] Local response generated using getFormattedChat:`, responseText.substring(0, 200) + '...');
         
         // Add bot response to messages
         const botMessageObj = {
@@ -922,14 +937,20 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
         }
         return true;
       } else {
-        console.error(`❌ [LOCAL DEBUG] No response generated from local model`);
+        console.error(`❌ [LOCAL DEBUG] No response generated from local model using getFormattedChat`);
+        console.error(`❌ [LOCAL DEBUG] Result object:`, result);
         if (onLoadingChange) {
           onLoadingChange(false);
         }
         return false;
       }
     } catch (error: any) {
-      console.error(`❌ [LOCAL DEBUG] Local processing error:`, error);
+      console.error(`❌ [LOCAL DEBUG] Local processing error with getFormattedChat:`, error);
+      console.error(`❌ [LOCAL DEBUG] Error details:`, {
+        message: error.message,
+        stack: error.stack?.substring(0, 500),
+        name: error.name
+      });
       
       // Check if it's an Android platform error
       if (error.message && error.message.includes('not implemented on Android')) {

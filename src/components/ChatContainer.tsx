@@ -48,7 +48,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   const [isModelLoading, setIsModelLoading] = useState<boolean>(false);
   const [downloadingModel, setDownloadingModel] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
-  const [llamaService] = useState(() => LlamaService);
+  const [llamaService] = useState(() => LlamaService.getInstance());
   
   // Add new state variables for download status tracking
   const [downloadError, setDownloadError] = useState<string | null>(null);
