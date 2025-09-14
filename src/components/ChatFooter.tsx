@@ -68,6 +68,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
   const [message, setMessage] = useState<string>('');
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [isProcessingLocally, setIsProcessingLocally] = useState<boolean>(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recordingState, setRecordingState] = useState<'mic' | 'stop' | 'send'>('mic');
@@ -831,6 +832,15 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
   // Process message locally using downloaded model (Offline mode)
   const processMessageLocally = async (messageText: string, timestamp: string): Promise<boolean> => {
     try {
+      // Prevent duplicate processing by checking if we're already processing
+      if (isProcessingLocally) {
+        console.log(`🔄 [LOCAL DEBUG] Already processing a message locally, skipping duplicate`);
+        return false;
+      }
+
+      // Set processing state
+      setIsProcessingLocally(true);
+
       // Show loading animation
       if (onLoadingChange) {
         onLoadingChange(true);
@@ -935,6 +945,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
         if (onLoadingChange) {
           onLoadingChange(false);
         }
+        setIsProcessingLocally(false);
         return true;
       } else {
         console.error(`❌ [LOCAL DEBUG] No response generated from local model using getFormattedChat`);
@@ -942,6 +953,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
         if (onLoadingChange) {
           onLoadingChange(false);
         }
+        setIsProcessingLocally(false);
         return false;
       }
     } catch (error: any) {
@@ -974,6 +986,9 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
         onLoadingChange(false);
       }
       return false;
+    } finally {
+      // Always reset processing state
+      setIsProcessingLocally(false);
     }
   };
 

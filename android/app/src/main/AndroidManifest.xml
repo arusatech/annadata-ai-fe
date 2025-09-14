@@ -26,7 +26,8 @@
         <activity
             android:name="com.capacitorjs.plugins.splashscreen.SplashScreenActivity"
             android:theme="@style/AppTheme.NoActionBarLaunch"
-            android:exported="false" />
+            android:exported="false"
+        />
 
         <provider
             android:name="androidx.core.content.FileProvider"
