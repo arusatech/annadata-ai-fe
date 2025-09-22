@@ -24,6 +24,7 @@ def capacitor_pods
   pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
   pod 'CapawesomeTeamCapacitorDatetimePicker', :path => '../../node_modules/@capawesome-team/capacitor-datetime-picker'
   pod 'CapawesomeTeamCapacitorSpeechRecognition', :path => '../../node_modules/@capawesome-team/capacitor-speech-recognition'
+  pod 'CapawesomeTeamCapacitorSqlite', :path => '../../node_modules/@capawesome-team/capacitor-sqlite'
   pod 'CapawesomeCapacitorFilePicker', :path => '../../node_modules/@capawesome/capacitor-file-picker'
   pod 'LlamaCppCapacitor', :path => '../../node_modules/llama-cpp-capacitor'
 end

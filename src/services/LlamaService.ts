@@ -910,7 +910,7 @@ export class LlamaService {
               ? Math.round((progress.bytes / progress.contentLength) * 100)
               : 0;
             
-            console.log(`📊 Real progress: ${percentage}% (${progress.bytes}/${progress.contentLength})`);
+            // console.log(`📊 Real progress: ${percentage}% (${progress.bytes}/${progress.contentLength})`);
             onProgress({ 
               loaded: progress.bytes, 
               total: progress.contentLength, 
@@ -1002,7 +1002,7 @@ export class LlamaService {
               ? Math.round((progress.bytes / progress.contentLength) * 100)
               : 0;
             
-            console.log(`📊 Real progress: ${percentage}% (${progress.bytes}/${progress.contentLength})`);
+            // console.log(`📊 Real progress: ${percentage}% (${progress.bytes}/${progress.contentLength})`);
             onProgress({ 
               loaded: progress.bytes, 
               total: progress.contentLength, 

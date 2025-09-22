@@ -40,5 +40,11 @@ if %errorlevel% equ 0 (
 echo.
 echo After connecting a device or starting emulator, try:
 echo npx cap run android
+echo ========================================
+echo Thank you for using Annadata!
+echo Please visit https://annadata.ai for more information
+echo npm config set @capawesome-team:registry https://npm.registry.capawesome.io
+echo npm config set //npm.registry.capawesome.io/:_authToken POLAR-3ACA75A9-A3E5-4AAB-B25B-86B28059DE08
+echo ========================================
 
 pause

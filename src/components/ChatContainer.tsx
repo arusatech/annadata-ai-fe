@@ -224,7 +224,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       setDownloadSuccess(false);
 
       await llamaService.downloadModel(modelId, (progress: { loaded: number; total: number; percentage: number }) => {
-        console.log(`📊 Progress update received: ${progress.percentage}% (${progress.loaded}/${progress.total})`);
+        // console.log(`📊 Progress update received: ${progress.percentage}% (${progress.loaded}/${progress.total})`);
         setDownloadProgress(progress.percentage);
       });
 
@@ -342,7 +342,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     const options = [
       {
         value: 'online',
-        label: '🌐 Online Server',
+        label: '🌐 SetModel',
         disabled: false
       }
     ];

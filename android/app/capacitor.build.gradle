@@ -22,6 +22,7 @@ dependencies {
     implementation project(':capacitor-status-bar')
     implementation project(':capawesome-team-capacitor-datetime-picker')
     implementation project(':capawesome-team-capacitor-speech-recognition')
+    implementation project(':capawesome-team-capacitor-sqlite')
     implementation project(':capawesome-capacitor-file-picker')
     implementation project(':llama-cpp-capacitor')
 

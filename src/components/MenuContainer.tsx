@@ -11,6 +11,7 @@ import LanguagePopup from './LanguagePopup';
 import DeviceInfoPopup from './DeviceInfoPopup';
 import RegistrationPopup from './RegistrationPopup';
 import SettingsPopup from './SettingsPopup';
+import ChatHistoryPopup from './ChatHistoryPopup';
 import AuthService from '../services/AuthService';
 import NidhiPopup from './NidhiPopup';
 
@@ -18,15 +19,22 @@ interface MenuContainerProps {
   isUserLoggedIn: boolean;
   isOffline: boolean;
   onAuthStateChange: (isLoggedIn: boolean, isOfflineMode: boolean) => void;
+  onSessionSelect?: (sessionId: string) => void;
 }
 
-const MenuContainer: React.FC<MenuContainerProps> = ({ isUserLoggedIn, isOffline, onAuthStateChange }) => {
+const MenuContainer: React.FC<MenuContainerProps> = ({ 
+  isUserLoggedIn, 
+  isOffline, 
+  onAuthStateChange,
+  onSessionSelect 
+}) => {
   const { t, i18n } = useTranslation();
   const [isLangPopupVisible, setIsLangPopupVisible] = useState(false);
   const [isDeviceInfoPopupVisible, setIsDeviceInfoPopupVisible] = useState(false);
   const [isNidhiPopupVisible, setIsNidhiPopupVisible] = useState(false);
   const [isRegistrationPopupVisible, setIsRegistrationPopupVisible] = useState(false);
   const [isSettingsPopupVisible, setIsSettingsPopupVisible] = useState(false);
+  const [isChatHistoryPopupVisible, setIsChatHistoryPopupVisible] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<string>('+91'); // Default to India
   const [selectedCurrencySymbol, setSelectedCurrencySymbol] = useState<string>('₹'); // Default to Rupee
@@ -51,9 +59,19 @@ const MenuContainer: React.FC<MenuContainerProps> = ({ isUserLoggedIn, isOffline
     setIsSettingsPopupVisible(true);
   };
 
+  const toggleChatHistoryPopup = () => {
+    setIsChatHistoryPopupVisible(!isChatHistoryPopupVisible);
+  };
+
   const handleSettingsAuthStateChange = (isLoggedIn: boolean, isOfflineMode: boolean) => {
     if (onAuthStateChange) {
       onAuthStateChange(isLoggedIn, isOfflineMode);
+    }
+  };
+
+  const handleSessionSelect = (sessionId: string) => {
+    if (onSessionSelect) {
+      onSessionSelect(sessionId);
     }
   };
 
@@ -166,7 +184,13 @@ const MenuContainer: React.FC<MenuContainerProps> = ({ isUserLoggedIn, isOffline
               ></i>
             )}
           </div>
-          <div className="icon"><i className="icon-history"></i></div>
+          <div className="icon" onClick={toggleChatHistoryPopup}>
+            <i 
+              className="icon-history" 
+              title={t('chatHistory', 'Chat History')}
+              style={{ cursor: 'pointer' }}
+            ></i>
+          </div>
           <div className="icon" onClick={toggleLanguageDropdown}>
             <i className="" id="langIcon">{t('initial', 'E')}</i>
           </div>
@@ -185,6 +209,13 @@ const MenuContainer: React.FC<MenuContainerProps> = ({ isUserLoggedIn, isOffline
         <SettingsPopup 
           onClose={() => setIsSettingsPopupVisible(false)} 
           onAuthStateChange={handleSettingsAuthStateChange}
+        />
+      )}
+
+      {isChatHistoryPopupVisible && (
+        <ChatHistoryPopup
+          onClose={() => setIsChatHistoryPopupVisible(false)}
+          onSelectSession={handleSessionSelect}
         />
       )}
 

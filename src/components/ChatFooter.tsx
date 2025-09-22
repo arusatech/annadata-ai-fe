@@ -8,6 +8,8 @@ import { SpeechRecognitionService } from '../services/SpeechService';
 import { fileService, FileType } from '../services/FileService';
 import { CameraService, CameraPhoto } from '../services/CameraService';
 import LlamaService from '../services/LlamaService';
+import SQLiteService from '../services/SQLiteService';
+import { getDeviceId, setCurrentSessionId, getCurrentSessionId } from '../services/DeviceInfoService';
 
 // Type definitions
 interface Message {
@@ -21,6 +23,7 @@ interface Message {
 
 interface ChatFooterProps {
   onSendMessage?: (message: string) => void;
+  onBotMessage?: (message: Message) => void; // Add this new prop
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   selectedModel?: string; // Add this prop
   onLoadingChange?: (isLoading: boolean) => void; // Add this prop
@@ -63,7 +66,7 @@ interface FileAttachment {
   webPath?: string;
 }
 
-const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, selectedModel, onLoadingChange }) => {
+const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, setMessages, selectedModel, onLoadingChange }) => {
   const { t, i18n } = useTranslation();
   const [message, setMessage] = useState<string>('');
   const [isInputFocused, setIsInputFocused] = useState<boolean>(false);
@@ -942,6 +945,12 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
         };
         
         setMessages(prevMessages => [...prevMessages, botMessageObj]);
+        
+        // Save bot response to SQLite via callback
+        if (onBotMessage) {
+          await onBotMessage(botMessageObj);
+        }
+        
         if (onLoadingChange) {
           onLoadingChange(false);
         }
@@ -1004,18 +1013,11 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
     const userMessage: string = message.trim();
     const timestamp: string = new Date().toISOString();
     
-    // Create user message object
-    const userMessageObj: UserMessageObj = {
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      text: userMessage || (photoAttachments.length > 0 || fileAttachments.length > 0 ? 
-        `📤 Sent ${photoAttachments.length + fileAttachments.length} attachment(s)` : ''),
-      sender: 'user',
-      time: new Date().toLocaleTimeString(),
-      timestamp: timestamp
-    };
-
-    // Add user message to chat immediately
-    setMessages(prevMessages => [...prevMessages, userMessageObj]);
+    // Call the onSendMessage callback to handle user message creation and SQLite saving
+    // This will create the user message in App.tsx and save it to SQLite
+    if (onSendMessage && userMessage) {
+      await onSendMessage(userMessage);
+    }
     
     // Clear input and set sending state
     setMessage('');
@@ -1055,17 +1057,13 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
         }
       }
 
-      // Send text message based on selected mode
-      if (userMessage.trim()) {
-        let success: boolean = false;
-        
+      // Process the message (either online or offline)
+      let success = false;
+      
+      if (userMessage || photoAttachments.length > 0 || fileAttachments.length > 0) {
         if (selectedModel === 'online') {
-          // Online mode: Send to remote server
-          console.log(' [MODE DEBUG] Using online mode - sending to remote server');
           success = await sendMessageViaWebSocket(userMessage, timestamp);
         } else {
-          // Offline mode: Process locally
-          console.log(` [MODE DEBUG] Using offline mode - processing with local model: ${selectedModel}`);
           success = await processMessageLocally(userMessage, timestamp);
         }
         
@@ -1075,7 +1073,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
           const errorMessageObj: ErrorMessageObj = {
             id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             text: selectedModel === 'online' 
-              ? 'Unable to send message. Please check your connection and try again.'
+              ? 'Device Offline — Switch to Local Model'
               : `Unable to process message with local model ${selectedModel}. Please try again.`,
             sender: 'bot',
             time: new Date().toLocaleTimeString(),
@@ -1106,6 +1104,40 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, setMessages, sel
       setMessages(prevMessages => [...prevMessages, errorMessageObj]);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  // Helper function to save messages to SQLite
+  const saveMessageToSQLite = async (messageObj: any) => {
+    try {
+      const deviceId = await getDeviceId();
+      if (!deviceId) {
+        console.warn('⚠️ No device ID available, skipping SQLite save');
+        return;
+      }
+
+      const sqliteService = SQLiteService.getInstance();
+      await sqliteService.initialize();
+
+      // Get or create current session
+      let sessionId = await getCurrentSessionId();
+      if (!sessionId) {
+        sessionId = await sqliteService.createSession(deviceId, 'New Chat');
+        await setCurrentSessionId(sessionId);
+      }
+
+      await sqliteService.saveMessage({
+        message_id: messageObj.id,
+        session_id: sessionId,
+        content: messageObj.text,
+        sender: messageObj.sender,
+        created_at: messageObj.timestamp,
+        is_error: messageObj.isError || false
+      });
+
+      console.log('✅ Message saved to SQLite:', messageObj.id);
+    } catch (error) {
+      console.error('❌ Error saving message to SQLite:', error);
     }
   };
 

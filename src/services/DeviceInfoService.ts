@@ -215,5 +215,23 @@ export async function getFullDeviceInfo(): Promise<DeviceInfo> {
   return deviceInfo;
 }
 
+// Session management functions
+async function getCurrentSessionId(): Promise<string | null> {
+  try {
+    return localStorage.getItem('current_session_id');
+  } catch (error) {
+    console.error('Error getting current session ID:', error);
+    return null;
+  }
+}
+
+async function setCurrentSessionId(sessionId: string): Promise<void> {
+  try {
+    localStorage.setItem('current_session_id', sessionId);
+  } catch (error) {
+    console.error('Error setting current session ID:', error);
+  }
+}
+
 // Export the functions
-export { getDeviceId, isDeviceIdAvailable };
+export { getDeviceId, isDeviceIdAvailable, getCurrentSessionId, setCurrentSessionId };

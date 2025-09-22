@@ -86,6 +86,7 @@ export const langData: LangDataType = {
     'deposit': 'பணம்',
     'principal': 'முதல் தொகை',
     'proposal': 'முன்மொழிவு',
+    'chatHistory': 'பேச்சு வரலாறு',
   },
   'te': {
     'title': 'అన్నదాత <sup>ai</sup>',
@@ -158,6 +159,7 @@ export const langData: LangDataType = {
     'deposit': 'పణము',
     'principal': 'పెట్టుబడి',
     'proposal': 'ప్రతిపాదన',
+    'chatHistory': 'సంభాషణల చరిత్ర',
   },
   'hi': {
     'title': 'अन्नदाता <sup>ai</sup>',
@@ -230,6 +232,7 @@ export const langData: LangDataType = {
     'deposit': 'अमानत',
     'principal': 'मूलधन',
     'proposal': 'प्रस्ताव',
+    'chatHistory': 'चैट इतिहास',
   },
   'kn': {
     'title': 'ಅನ್ನದಾತ <sup>ai</sup>',
@@ -302,6 +305,7 @@ export const langData: LangDataType = {
     'deposit': 'ಠೇವಣಿ',
     'principal': 'ಮೂಲಧನ',
     'proposal': 'ಸಲಹೆ',
+    'chatHistory': 'ಚಾಟ್ ಇತಿಹಾಸ',
   },
   'or': {
     'title': 'ଅନ୍ନଦାତା <sup>ai</sup>',
@@ -374,6 +378,7 @@ export const langData: LangDataType = {
     'deposit': 'ଅମାନତ',
     'principal': 'ମୂଳଧନ',
     'proposal': 'ପ୍ରସ୍ତାବ',
+    'chatHistory': 'ଚାଟ୍ ଇତಿହାସ',
   },
   'bn': {
     'title': 'অন্নদাতা <sup>ai</sup>',
@@ -446,6 +451,7 @@ export const langData: LangDataType = {
     'deposit': 'অমানত',
     'principal': 'মূলধন',
     'proposal': 'প্ৰস্তাৱ',
+    'chatHistory': 'চ্যাট ইতিহাস',
   },
   'pa': {
     'title': 'ਅਨ੍ਨਦਾਤਾ <sup>ai</sup>',
@@ -518,6 +524,7 @@ export const langData: LangDataType = {
     'deposit': 'ਅਮਾਨਤ',
     'principal': 'ਮੂਲਧਨ',
     'proposal': 'ਪ੍ਰਸਤਾਵ',
+    'chatHistory': 'ਚੈਟ ਇਤਿਹਾਸ',
   },
   'mr': {
     'title': 'अन्नदाता <sup>ai</sup>',
@@ -590,6 +597,7 @@ export const langData: LangDataType = {
     'deposit': 'अमानत',
     'principal': 'मूळधन',
     'proposal': 'प्रस्ताव',
+    'chatHistory': 'चैट इतिहास',
   },
   'ml': {
     'title': 'അന്നദാത <sup>ai</sup>',
@@ -662,6 +670,7 @@ export const langData: LangDataType = {
     'deposit': 'അമാനത',
     'principal': 'മൂലധനം',
     'proposal': 'പ്രതിപാദനം',
+    'chatHistory': 'ചാറ്റ് ചരിത്രം',
   },
   'as': {
     'title': 'আন্নাডাটা <sup>ai</sup>',
@@ -734,6 +743,7 @@ export const langData: LangDataType = {
     'deposit': 'অমানত',
     'principal': 'মূলধন',
     'proposal': 'প্ৰস্তাৱ',
+    'chatHistory': 'চাট ইতিহাস',
   },
   'gu': {
     'title': 'અન્નદાતા <sup>ai</sup>',
@@ -806,6 +816,7 @@ export const langData: LangDataType = {
     'deposit': 'અમાનત',
     'principal': 'મૂલધન',
     'proposal': 'પ્રસ્તા൱',
+    'chatHistory': 'ચેટ ઇતિહાસ',
   },
   'en': {
     'title': 'AnnaData <sup>ai</sup>',
@@ -878,6 +889,7 @@ export const langData: LangDataType = {
     'deposit': 'Deposit',
     'principal': 'Principal',
     'proposal': 'Proposal',
+    'chatHistory': 'Chat History',
   },
   'ne': {
     'title': 'अन्नाडाटा <sup>ai</sup>',
@@ -950,6 +962,7 @@ export const langData: LangDataType = {
     'deposit': 'अमानत',
     'principal': 'मूलधन',
     'proposal': 'प्रस्ताव',
+    'chatHistory': 'च्याट इतिहास',
   },
   'brx': {
     'title': 'अन्नदाता <sup>ai</sup>',
@@ -1022,6 +1035,7 @@ export const langData: LangDataType = {
     'deposit': 'अमानत',
     'principal': 'मूलधन',
     'proposal': 'सलाह',
+    'chatHistory': 'चैट गोजोन',
   },
   'gom': {
     'title': 'अन्नदाता <sup>ai</sup>',
@@ -1094,6 +1108,7 @@ export const langData: LangDataType = {
     'deposit': 'अमानत',
     'principal': 'मुळ्धन',
     'proposal': 'आनी सल्लो',
+    'chatHistory': 'चैट इतिहास',
   },
   'sa': {
     'title': 'अन्नदाता <sup>ai</sup>',
@@ -1166,6 +1181,7 @@ export const langData: LangDataType = {
     'deposit': 'अमानत',
     'principal': 'मूलधनम्',
     'proposal': 'आनी सल्लो',
+    'chatHistory': 'संवाद इतिहासः',
   },
   'ks': {
     'title': 'اَنَدٲتا <sup>ai</sup>',
@@ -1238,6 +1254,7 @@ export const langData: LangDataType = {
     'deposit': 'آمنٹ',
     'principal': 'اَصل رَقَم',
     'proposal': 'پیشکش',
+    'chatHistory': 'چیٹ کی تاریخ',
   },
   'si': {
     'title': 'අන්නදාත <sup>ai</sup>',
@@ -1310,6 +1327,7 @@ export const langData: LangDataType = {
     'deposit': 'අමනත',
     'principal': 'මූලධනය',
     'proposal': 'ආයුබෝවන්! අද මට ඔබට කෙසේ උදව් කළ හැකිද?',
+    'chatHistory': 'ක්‍රියාව පිළිබඳව',
   },
   'mai':{
     'title': '𑂃𑂢𑂹𑂢𑂠𑂰𑂞𑂰 <sup>ai</sup>',  
@@ -1382,6 +1400,7 @@ export const langData: LangDataType = {
     'deposit': '𑂃𑂧𑂰𑂢𑂞',
     'principal': 'اَصل رقم',
     'proposal': 'پیشکش',
+    'chatHistory': '𑂒𑂰𑂞 𑂃𑂱𑂞𑂱𑂯𑂰𑂮',
   },
   'mni': {
     'title': 'ꯑꯟꯅꯗꯇꯥ <sup>ai</sup>',
@@ -1454,6 +1473,7 @@ export const langData: LangDataType = {
     'deposit': 'ꯑꯃꯥꯅꯠ',
     'principal': 'ꯃꯨꯜꯗꯥꯟ',
     'proposal': 'প্ৰস্তাৱ',
+    'chatHistory': 'ꯆꯥꯠ ꯄꯨꯋꯥꯔꯤ',
   },
   'sd': {
     'title': 'اناداتا۔ <sup>ai</sup>',
@@ -1526,6 +1546,7 @@ export const langData: LangDataType = {
     'deposit': 'اَمانَت',
     'principal': 'اَصل رقم',
     'proposal': 'پيشڪش',
+    'chatHistory': 'چيٽ تاريخ',
   },
   'ur': {
     'title': 'اناداتا۔ <sup>ai</sup>',
@@ -1598,6 +1619,7 @@ export const langData: LangDataType = {
     'deposit': 'اَمانَت',
     'principal': 'اَصل رقم',
     'proposal': 'تجویز',
+    'chatHistory': 'چیٹ کی تاریخ',
   },
   'fr': {
     'title': 'AnnaData <sup>ai</sup>',
@@ -1670,6 +1692,7 @@ export const langData: LangDataType = {
     'deposit': 'Dépôt',
     'principal': 'Principal',
     'proposal': 'Proposal',
+    'chatHistory': 'Historique des discussions',
   },
   'pt': {
     'title': 'AnnaData <sup>ai</sup>',
@@ -1742,6 +1765,7 @@ export const langData: LangDataType = {
     'deposit': 'Depósito',
     'principal': 'Principal',
     'proposal': 'Proposal',
+    'chatHistory': 'Histórico de bate-papo',
   },
   'es': {
     'title': 'AnnaData <sup>ai</sup>',
@@ -1814,6 +1838,7 @@ export const langData: LangDataType = {
     'deposit': 'Depósito',
     'principal': 'Principal',
     'proposal': 'Proposal',
+    'chatHistory': 'Historial de chat',
   },
   'de': {
     'title': 'AnnaData <sup>ai</sup>',
@@ -1886,6 +1911,7 @@ export const langData: LangDataType = {
     'deposit': 'Deposit',
     'principal': 'Kapital',
     'proposal': 'Proposal',
+    'chatHistory': 'Chat-Verlauf',
   },
   'he': {
     'title': 'אנאדאטה <sup>ai</sup>',
@@ -1958,6 +1984,7 @@ export const langData: LangDataType = {
     'deposit':'הַפְקָדָה',
     'principal': 'קרן',
     'proposal': 'הצעה',
+    'chatHistory': 'היסטוריית צ\'אט',
   },
   'th': {
     'title': 'แอนนาเดต้า <sup>ai</sup>',
@@ -2030,6 +2057,7 @@ export const langData: LangDataType = {
     'deposit': 'ฝากเงิน',
     'principal': 'เงินต้น',
     'proposal': 'ข้อเสนอ',
+    'chatHistory': 'ประวัติการแชท',
   },
   'tr': {
     'title': 'AnnaData <sup>ai</sup>',
@@ -2102,6 +2130,7 @@ export const langData: LangDataType = {
     'deposit': 'Yatırım',
     'principal': 'Ana Para',
     'proposal': 'Öneri',
+    'chatHistory': 'Sohbet Geçmişi',
   },
   'el': {
     'title': 'AnnaData <sup>ai</sup>',
@@ -2174,6 +2203,7 @@ export const langData: LangDataType = {
     'deposit': 'Χρηματοδότηση',
     'principal': 'Κεφάλαιο',
     'proposal': 'Πρόταση',
+    'chatHistory': 'Ιστορικό συνομιλίας',
   },
   'ru': {
     'title': 'АннаДата <sup>ai</sup>',
@@ -2246,6 +2276,7 @@ export const langData: LangDataType = {
     'deposit': 'Депозит',
     'principal': 'Основной капитал',
     'proposal': 'Предложение',
+    'chatHistory': 'История чата',
   },
   'uk': {
     'title': 'АннаДата <sup>ai</sup>',
@@ -2318,6 +2349,7 @@ export const langData: LangDataType = {
     'deposit': 'Депозит',
     'principal': 'Основний капітал',
     'proposal': 'Пропозиція',
+    'chatHistory': 'Історія чату',
   },
   'pl': {
     'title': 'AnnaData <sup>ai</sup>',
@@ -2390,6 +2422,7 @@ export const langData: LangDataType = {
     'deposit': 'Depozyt',
     'principal': 'Kapitał',
     'proposal': 'Propozycja',
+    'chatHistory': 'Historia czatu',
   },
   'ko': {
     'title': '안나데이터 <sup>ai</sup>',
@@ -2462,6 +2495,7 @@ export const langData: LangDataType = {
     'deposit':'위탁',
     'principal':'원금',
     'proposal': '제안',
+    'chatHistory': '채팅 기록',
   },
   'ja': {
     'title': 'アナデータ <sup>ai</sup>',
@@ -2534,6 +2568,7 @@ export const langData: LangDataType = {
     'deposit':'預金',
     'principal': '元金',
     'proposal': '提案',
+    'chatHistory': 'チャット履歴',
   },
   'zh': {
     'title': '安娜数据 <sup>ai</sup>',
@@ -2606,6 +2641,7 @@ export const langData: LangDataType = {
     'deposit':'存款',
     'principal':'本金',
     'proposal': '建议',
+    'chatHistory': '聊天记录',
   }
 };
   

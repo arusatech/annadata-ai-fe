@@ -11,6 +11,8 @@ import { langData, langOptions } from './data/langData'; // Import both exports
 import { capacitorPreferencesDetector } from './js/i18n-detector';
 import AuthService from './services/AuthService';
 import ChatService from './services/ChatService';
+import SQLiteService from './services/SQLiteService';
+import { getDeviceId } from './services/DeviceInfoService';
 
 // Import global stylesheets
 import './css/style.css';
@@ -116,6 +118,7 @@ const App: React.FC = () => {
   const [isOffline, setIsOffline] = useState<boolean>(false);
   const [selectedModel, setSelectedModel] = useState<string>('online'); // Default to online
   const [isLocalProcessing, setIsLocalProcessing] = useState<boolean>(false); // Add this state
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   // Error boundary for the app
   const [hasError, setHasError] = useState<boolean>(false);
@@ -142,356 +145,134 @@ const App: React.FC = () => {
     setIsLocalProcessing(loading);
   };
 
+  // Handle session selection from chat history
+  const handleSessionSelect = async (sessionId: string) => {
+    try {
+      console.log('🔄 Loading session:', sessionId);
+      
+      const sqliteService = SQLiteService.getInstance();
+      await sqliteService.initialize();
+      
+      const sessionMessages = await sqliteService.getSessionMessages(sessionId);
+      
+      // Convert SQLite messages to App message format
+      const convertedMessages: Message[] = sessionMessages.map(msg => ({
+        id: msg.message_id,
+        text: msg.content,
+        sender: msg.sender,
+        time: new Date(msg.created_at).toLocaleTimeString(),
+        timestamp: msg.created_at,
+        isError: msg.is_error
+      }));
+      
+      setMessages(convertedMessages);
+      setCurrentSessionId(sessionId);
+      
+      console.log('✅ Session loaded successfully:', sessionId, 'Messages:', convertedMessages.length);
+    } catch (error) {
+      console.error('❌ Error loading session:', error);
+      alert('Failed to load chat session');
+    }
+  };
+
+  // Save message to SQLite when a new message is added
+  const saveMessageToSQLite = async (message: Message, sessionId: string) => {
+    try {
+      const deviceId = await getDeviceId();
+      if (!deviceId) {
+        console.warn('⚠️ No device ID available, skipping SQLite save');
+        return;
+      }
+
+      const sqliteService = SQLiteService.getInstance();
+      await sqliteService.initialize();
+
+      // Check if session exists, if not create it
+      if (!currentSessionId) {
+        const newSessionId = await sqliteService.createSession(deviceId, 'New Chat');
+        setCurrentSessionId(newSessionId);
+        sessionId = newSessionId;
+      }
+
+      await sqliteService.saveMessage({
+        message_id: message.id,
+        session_id: sessionId,
+        content: message.text,
+        sender: message.sender,
+        created_at: message.timestamp,
+        is_error: message.isError || false
+      });
+
+      console.log('✅ Message saved to SQLite');
+    } catch (error) {
+      console.error('❌ Error saving message to SQLite:', error);
+    }
+  };
+
   useEffect(() => {
     // Show splash screen immediately
     const showSplash = async () => {
       try {
         console.log('🔍 [SPLASH] Showing splash screen immediately...');
-        await SplashScreen.show();
-        console.log('✅ [SPLASH] Splash screen shown successfully');
-      } catch (error) {
-        console.error('❌ [SPLASH] Error showing splash screen:', error);
-      }
-    };
-    
-    showSplash();
-    
-    // Initialize and hide the splash screen when component mounts
-    const initApp = async (): Promise<(() => void) | void> => {
-      try {
-        console.log('🚀 App Startup: Initializing application...');
-        
-        // Step 1: Initialize JWT and check if user exists
-        console.log('📡 Step 1: Calling AuthService.initializeJWT()');
-        const jwtResult = await AuthService.initializeJWT() as JWTResult;
-        const userExists: boolean = jwtResult.userExists || false;
-        setIsUserLoggedIn(userExists);
-        console.log('✅ JWT initialization result:', jwtResult);
-        
-        // Step 2: Set user login state based on JWT initialization
-        // User is logged in ONLY if we have a valid JWT token
-        console.log('👤 User login state:', userExists ? 'Logged In' : 'Not Logged In');
-        console.log('🔑 JWT Token present:', jwtResult.token);
-        
-        // Step 3: Set offline state
-        const isOfflineMode: boolean = jwtResult.offline || false;
-        setIsOffline(isOfflineMode);
-        console.log('🌐 Offline mode:', isOfflineMode ? 'Enabled' : 'Disabled');
-        
-        // Step 4: Set up WebSocket message handling for bot responses
-        let messageCallback: ((topic: string, payload: MessagePayload) => void) | null = null;
-        if (userExists && !isOfflineMode) {
-          console.log('🔌 [APP DEBUG] Setting up WebSocket message handling');
-          
-          // First, ensure we have a valid token before setting up WebSocket
-          ChatService.checkAndRefreshToken().then((tokenResult: TokenResult) => {
-            if (tokenResult.success) {
-              console.log('✅ [APP DEBUG] Token validated, proceeding with WebSocket setup');
-            } else {
-              console.error('❌ [APP DEBUG] Token validation failed:', tokenResult.error);
-              // If token validation fails, we might need to re-authenticate
-              setIsUserLoggedIn(false);
-              return;
-            }
-          }).catch((error: any) => {
-            console.error('❌ [APP DEBUG] Error checking token:', error);
-            setIsUserLoggedIn(false);
-            return;
-          });
-          
-          messageCallback = (topic: string, payload: MessagePayload): void => {
-            console.log('📨 [APP DEBUG] Received WebSocket message:', {
-              topic: topic,
-              payloadType: payload.type,
-              hasContent: !!payload.content,
-              contentLength: payload.content ? payload.content.length : 0,
-              timestamp: payload.timestamp
-            });
-            
-            // Handle connection established
-            if (payload.type === 'connection_established') {
-              console.log('🔗 [APP DEBUG] WebSocket connection established:', {
-                user_id: payload.user_id,
-                ai_status: payload.ai_status,
-                kafka_topics: payload.kafka_topics
-              });
-              
-              // Test: Add a test message when connection is established
-              console.log('🧪 [TEST DEBUG] Adding test message on connection');
-              const testMessage: Message = {
-                id: `connection_test_${Date.now()}`,
-                text: '🔗 Connection established! WebSocket is working.',
-                sender: 'bot',
-                time: new Date().toLocaleTimeString(),
-                timestamp: new Date().toISOString()
-              };
-              setMessages(prevMessages => [...prevMessages, testMessage]);
-            }
-            
-            // Handle user message confirmation
-            else if (payload.type === 'user_message') {
-              console.log('✅ [APP DEBUG] User message confirmed:', {
-                content: payload.content,
-                status: payload.status,
-                message_id: payload.message_id
-              });
-            }
-            
-            // Handle processing status messages
-            else if (payload.type === 'processing_status') {
-              console.log('⚙️ [APP DEBUG] Processing status message:', {
-                status: payload.status,
-                user_id: payload.user_id,
-                timestamp: payload.timestamp
-              });
-              
-              // Hide loading animation when processing is completed
-              if (payload.status === 'completed') {
-                console.log('✅ [APP DEBUG] Processing completed, hiding loading animation');
-                // The loading animation will be hidden by the ChatService when bot response arrives
-              }
-              
-              // You can add UI feedback here if needed
-              // For example, show a "Processing..." message or status indicator
-            }
-            
-            // Handle AI responses (the main bot responses)
-            else if (payload.type === 'ai_response') {
-              console.log('🤖 [APP DEBUG] AI response received:', {
-                content: payload.content,
-                data: payload.data,
-                confidence: payload.confidence,
-                model_used: payload.model_used,
-                sender: payload.sender
-              });
-              
-              // Handle both possible content locations based on server structure
-              let responseContent: string | undefined = payload.content;
-              if (!responseContent && payload.data && payload.data.content) {
-                responseContent = payload.data.content;
-              }
-              
-              if (responseContent) {
-                const botMessageObj: Message = {
-                  id: `bot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                  text: responseContent,
-                  sender: 'bot',
-                  time: new Date().toLocaleTimeString(),
-                  timestamp: payload.timestamp || new Date().toISOString()
-                };
-                
-                console.log('💬 [APP DEBUG] Created bot message object:', {
-                  id: botMessageObj.id,
-                  textLength: botMessageObj.text.length,
-                  timestamp: botMessageObj.timestamp,
-                  content: responseContent.substring(0, 100) + (responseContent.length > 100 ? '...' : ''),
-                  fullMessageObj: botMessageObj
-                });
-                
-                setMessages(prevMessages => {
-                  const newMessages: Message[] = [...prevMessages, botMessageObj];
-                  console.log('💬 [APP DEBUG] Updated messages array, new count:', newMessages.length);
-                  console.log('💬 [APP DEBUG] All messages in array:', newMessages);
-                  
-                  // Test: Add a simple test message to see if state updates work
-                  setTimeout(() => {
-                    console.log('🧪 [TEST DEBUG] Testing state update with simple message');
-                    setMessages((currentMessages: Message[]) => {
-                      const testMessage: Message = {
-                        id: `test_${Date.now()}`,
-                        text: '🧪 TEST MESSAGE - If you see this, state updates work!',
-                        sender: 'bot',
-                        time: new Date().toLocaleTimeString(),
-                        timestamp: new Date().toISOString()
-                      };
-                      return [...currentMessages, testMessage];
-                    });
-                  }, 1000);
-                  
-                  return newMessages;
-                });
-              } else {
-                console.error('❌ [APP DEBUG] AI response received but no content found:', payload);
-              }
-            }
-            
-            // Handle notifications
-            else if (payload.type === 'notification') {
-              console.log('🔔 [APP DEBUG] Notification received:', {
-                content: payload.data?.content,
-                type: payload.data?.type,
-                user_id: payload.user_id
-              });
-              // Handle notification messages here if needed
-            }
-            
-            // Handle system messages
-            else if (payload.type === 'system_message') {
-              console.log('⚙️ [APP DEBUG] System message received:', {
-                content: payload.content,
-                user_id: payload.user_id
-              });
-            }
-            
-            // Handle broadcast messages
-            else if (payload.type === 'broadcast') {
-              console.log('📢 [APP DEBUG] Broadcast message received:', {
-                content: payload.content,
-                sender: payload.sender
-              });
-            }
-            
-            // Handle error messages
-            else if (payload.type === 'error') {
-              console.error('❌ [APP DEBUG] Error message received:', {
-                error: payload.error,
-                code: payload.code,
-                user_id: payload.user_id
-              });
-              
-              // Add error message to chat
-              const errorMessageObj: Message = {
-                id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                text: `Error: ${payload.error}`,
-                sender: 'bot', // Change from 'system' to 'bot'
-                time: new Date().toLocaleTimeString(),
-                timestamp: payload.timestamp || new Date().toISOString(),
-                isError: true
-              };
-              
-              setMessages(prevMessages => {
-                const newMessages: Message[] = [...prevMessages, errorMessageObj];
-                return newMessages;
-              });
-            }
-            
-            // Handle legacy bot responses (fallback for old format)
-            else if (topic.includes('-bot') && payload.type === 'text') {
-              console.log('💬 [APP DEBUG] Processing legacy bot response message:', {
-                topic: topic,
-                contentPreview: payload.content ? payload.content.substring(0, 100) + (payload.content.length > 100 ? '...' : '') : 'no content',
-                contentLength: payload.content ? payload.content.length : 0
-              });
-              
-              const botMessageObj: Message = {
-                id: `bot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                text: payload.content || '',
-                sender: 'bot',
-                time: new Date().toLocaleTimeString(),
-                timestamp: payload.timestamp || new Date().toISOString()
-              };
-              
-              setMessages(prevMessages => {
-                const newMessages: Message[] = [...prevMessages, botMessageObj];
-                console.log('💬 [APP DEBUG] Updated messages array, new count:', newMessages.length);
-                return newMessages;
-              });
-            }
-            
-            // Handle any other message types
-            else {
-              console.log('📡 [APP DEBUG] Received unhandled message:', {
-                topic: topic,
-                payload: payload,
-                messageType: payload.type,
-                hasTopic: !!topic
-              });
-              
-              // Log all message types for debugging
-              console.log('🔍 [APP DEBUG] Full message details:', {
-                topic: topic,
-                type: payload.type,
-                status: payload.status,
-                content: payload.content,
-                user_id: payload.user_id,
-                timestamp: payload.timestamp
-              });
-            }
-          };
-          
-          console.log('🔌 [APP DEBUG] Registering message callback with ChatService');
-          ChatService.onMessage(messageCallback);
-          console.log('✅ [APP DEBUG] Message callback registered successfully');
-          
-          // Test: Verify callback registration by checking ChatService
-          console.log('🔍 [APP DEBUG] ChatService message callbacks count:', (ChatService as any).messageCallbacks?.length || 0);
-        } else {
-          console.log('🔌 [APP DEBUG] Skipping WebSocket setup:', {
-            userExists: userExists,
-            isOfflineMode: isOfflineMode,
-            reason: !userExists ? 'User not authenticated' : 'Offline mode enabled'
-          });
-        }
-        
-        // Step 5: Log the final app state
-        if (userExists) {
-          console.log('✅ App Startup Complete: User authenticated, showing settings icon');
-        } else if (isOfflineMode) {
-          console.log('✅ App Startup Complete: Working offline mode');
-        } else {
-          console.log('✅ App Startup Complete: User needs registration, showing join icon');
-        }
-        
-        // Debug splash screen
-        console.log('🔍 [SPLASH] App initialization complete, keeping splash visible until fully ready...');
-        
-        // Keep splash screen visible and hide it only when app is fully ready
-        // Add a delay to ensure all components are mounted and ready
-        setTimeout(async () => {
-          try {
-            console.log('🔍 [SPLASH] App fully ready, hiding splash screen...');
-            await SplashScreen.hide();
-            console.log('✅ [SPLASH] Splash screen hidden successfully');
-          } catch (error) {
-            console.error('❌ [SPLASH] Error hiding splash screen:', error);
-          }
-          setIsLoading(false);
-        }, 2000); // 2 seconds to ensure app is fully ready
-
-        // Return cleanup function
-        return () => {
-          if (messageCallback) {
-            console.log('🔌 [APP DEBUG] Cleaning up message callback');
-            ChatService.removeMessageCallback(messageCallback);
-            console.log('✅ [APP DEBUG] Message callback removed successfully');
-          } else {
-            console.log('🔌 [APP DEBUG] No message callback to clean up');
-          }
-        };
-      } catch (error: any) {
-        console.error('❌ Error initializing app:', error);
-        setIsUserLoggedIn(false);
-        setIsOffline(true);
-        
-        // Debug splash screen in error case
-        console.log('🔍 [SPLASH] App error, checking splash screen...');
-        
-        // Let Capacitor handle splash screen auto-hide
-        setTimeout(async () => {
-          try {
-            console.log('🔍 [SPLASH] Hiding splash screen (error case)...');
-            await SplashScreen.hide();
-            console.log('✅ [SPLASH] Splash screen hidden successfully (error case)');
-          } catch (error) {
-            console.error('❌ [SPLASH] Error hiding splash screen (error case):', error);
-          }
-          setIsLoading(false);
-        }, 1000);
-      }
-    };
-
-    const cleanup = initApp();
-    
-    // Cleanup function for component unmount
-    return () => {
-      if (cleanup && typeof cleanup.then === 'function') {
-        cleanup.then((cleanupFn: (() => void) | void) => {
-          if (cleanupFn && typeof cleanupFn === 'function') {
-            cleanupFn();
-          }
+        await SplashScreen.show({
+          showDuration: 2000,
+          autoHide: false
         });
+      } catch (error) {
+        console.warn('⚠️ [SPLASH] Failed to show splash screen:', error);
       }
     };
+
+    const initialize = async () => {
+      try {
+        console.log('🚀 [INIT] Starting app initialization...');
+        setIsLoading(true);
+        
+        // Initialize SQLite first
+        try {
+          const sqliteService = SQLiteService.getInstance();
+          await sqliteService.initialize();
+          console.log('✅ [INIT] SQLite initialized successfully');
+        } catch (sqliteError) {
+          console.error('❌ [INIT] SQLite initialization failed:', sqliteError);
+          // Continue without SQLite functionality
+        }
+
+        // Initialize authentication
+        const authResult = await AuthService.initializeJWT();
+        console.log('🔐 [INIT] Auth result:', authResult);
+        
+        // Set auth state based on result
+        setIsUserLoggedIn((authResult.userExists ?? false) && !!authResult.token);
+        setIsOffline(authResult.offline ?? false);
+        
+        // Initialize chat service - commented out for now
+        // const chatService = new ChatService();
+        // await chatService.connect();
+        // console.log('💬 [INIT] Chat service initialized');
+        
+        console.log('✅ [INIT] App initialization complete');
+        
+        // Hide splash screen
+        try {
+          await SplashScreen.hide();
+          console.log('🔍 [SPLASH] Splash screen hidden');
+        } catch (splashError) {
+          console.warn('⚠️ [SPLASH] Failed to hide splash screen:', splashError);
+        }
+        
+      } catch (error) {
+        console.error('❌ [INIT] App initialization failed:', error);
+        setHasError(true);
+        setErrorMessage(error instanceof Error ? error.message : 'Unknown error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Run initialization
+    showSplash();
+    initialize();
   }, []);
 
   useEffect(() => {
@@ -521,7 +302,7 @@ const App: React.FC = () => {
 
   try {
     // Fix: Create a proper message handler function
-    const handleSendMessage = (messageText: string): void => {
+    const handleSendMessage = async (messageText: string): Promise<void> => {
       const newMessage: Message = {
         id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         text: messageText,
@@ -529,7 +310,13 @@ const App: React.FC = () => {
         time: new Date().toLocaleTimeString(),
         timestamp: new Date().toISOString()
       };
+      
       setMessages(prevMessages => [...prevMessages, newMessage]);
+      
+      // Save to SQLite
+      if (currentSessionId) {
+        await saveMessageToSQLite(newMessage, currentSessionId);
+      }
     };
 
     // Update the ChatFooter props
@@ -539,6 +326,7 @@ const App: React.FC = () => {
                 isUserLoggedIn={isUserLoggedIn}
                 isOffline={isOffline}
                 onAuthStateChange={handleAuthStateChange}
+                onSessionSelect={handleSessionSelect}
               />
         <ChatContainer 
           messages={messages} 

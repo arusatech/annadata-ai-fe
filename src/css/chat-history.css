@@ -1,0 +1,224 @@
+.popup-content {
+    background: white;
+    border-radius: 12px; /* Consistent across all devices */
+    width: 72%; /* Reduced by 20% from 90% */
+    max-width: 400px; /* Reduced by 20% from 500px */
+    max-height: 63vh; /* Reduced by 10% from 70vh */
+    position: fixed;
+    top: 140px; /* Increased from 120px to account for menu height + safe area */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    /* Enhanced responsive properties */
+    min-width: 224px; /* Reduced by 20% from 280px */
+    margin: 0 auto; /* This will ensure equal margins on both sides */
+}
+  
+  .popup-header {
+    position: relative;
+    padding: 2px;
+    border-bottom: 1px solid #e0e0e0;
+    background: linear-gradient(135deg, #333 0%, #000 100%);
+    color: white;
+    border-radius: 12px 12px 0 0; /* Consistent with popup-content */
+  }
+  
+  .popup-header h3 {
+    margin: 0;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .chat-history-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    max-height: 50vh;
+  }
+  
+  .loading-message,
+  .error-message,
+  .empty-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    color: #666;
+  }
+  
+  .loading-message i,
+  .error-message i,
+  .empty-message i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  
+  .error-message {
+    color: #ff4444;
+  }
+  
+  .retry-btn {
+    margin-top: 16px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .retry-btn:hover {
+    background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+  }
+  
+  .chat-history-list {
+    padding: 0;
+  }
+  
+  .chat-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .chat-history-item:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .chat-history-item:last-child {
+    border-bottom: none;
+  }
+  
+  .chat-item-content {
+    flex: 1;
+    min-width: 0; /* Allow text truncation */
+  }
+  
+  .chat-item-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  
+  .chat-item-date {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.2;
+  }
+  
+  .chat-item-actions {
+    display: flex;
+    align-items: center;
+    margin-left: 12px;
+  }
+  
+  .delete-btn {
+    background: none;
+    border: none;
+    color: #ff4444;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+  }
+  
+  .delete-btn:hover {
+    background-color: rgba(255, 68, 68, 0.1);
+    color: #ff6b35;
+  }
+  
+  .delete-btn i {
+    font-size: 16px;
+  }
+  
+  /* Mobile responsiveness */
+  @media (max-width: 600px) {
+    .chat-history-popup {
+      width: 95%;
+      max-height: 80vh;
+    }
+    
+    .chat-history-item {
+      padding: 12px 16px;
+    }
+    
+    .chat-item-title {
+      font-size: 14px;
+    }
+    
+    .chat-item-date {
+      font-size: 11px;
+    }
+  }
+  
+  /* Loading animation */
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .loading-message i {
+    animation: spin 1s linear infinite;
+  }
+
+/* Enhanced mobile responsiveness */
+@media (max-width: 768px) {
+    .popup-content {
+        width: 76%; /* Reduced by 20% from 95% */
+        max-width: none; /* Remove max-width constraint on mobile */
+        top: 120px; /* Account for mobile menu height */
+        max-height: 67.5vh; /* Reduced by 10% from 75vh */
+        border-radius: 12px; /* Consistent across all devices */
+        /* Remove margin overrides - let the centering work naturally */
+    }
+}
+
+@media (max-width: 480px) {
+    .popup-content {
+        width: 78.4%; /* Reduced by 20% from 98% */
+        top: 110px; /* Account for smaller mobile menu height */
+        max-height: 72vh; /* Reduced by 10% from 80vh */
+        border-radius: 12px; /* Consistent across all devices */
+        /* Remove margin overrides - let the centering work naturally */
+    }
+}
+
+/* Landscape orientation adjustments */
+@media (max-height: 600px) and (orientation: landscape) {
+    .popup-content {
+        top: 20px; /* Minimal top spacing in landscape */
+        max-height: 76.5vh; /* Reduced by 10% from 85vh */
+        border-radius: 12px; /* Consistent across all devices */
+    }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1200px) {
+    .popup-content {
+        max-width: 480px; /* Reduced by 20% from 600px */
+        border-radius: 12px; /* Consistent across all devices */
+        top: 160px; /* Slightly more spacing on large screens */
+    }
+}
+
+
+
