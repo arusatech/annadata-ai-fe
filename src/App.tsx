@@ -177,23 +177,31 @@ const App: React.FC = () => {
 
   // Save message to SQLite when a new message is added
   const saveMessageToSQLite = async (message: Message, sessionId: string) => {
+    console.log('🔍 [APP] saveMessageToSQLite called with message:', message.id, 'sessionId:', sessionId);
     try {
       const deviceId = await getDeviceId();
+      console.log('📱 [APP] Device ID:', deviceId);
       if (!deviceId) {
-        console.warn('⚠️ No device ID available, skipping SQLite save');
+        console.warn('⚠️ [APP] No device ID available, skipping SQLite save');
         return;
       }
 
       const sqliteService = SQLiteService.getInstance();
       await sqliteService.initialize();
+      console.log('🔧 [APP] SQLite service initialized');
 
       // Check if session exists, if not create it
       if (!currentSessionId) {
+        console.log('🆔 [APP] No current session, creating new one...');
         const newSessionId = await sqliteService.createSession(deviceId, 'New Chat');
         setCurrentSessionId(newSessionId);
         sessionId = newSessionId;
+        console.log('✅ [APP] New session created:', newSessionId);
+      } else {
+        console.log('🔄 [APP] Using existing session:', currentSessionId);
       }
 
+      console.log('💾 [APP] Saving message to SQLite...');
       await sqliteService.saveMessage({
         message_id: message.id,
         session_id: sessionId,
@@ -203,9 +211,9 @@ const App: React.FC = () => {
         is_error: message.isError || false
       });
 
-      console.log('✅ Message saved to SQLite');
+      console.log('✅ [APP] Message saved to SQLite successfully');
     } catch (error) {
-      console.error('❌ Error saving message to SQLite:', error);
+      console.error('❌ [APP] Error saving message to SQLite:', error);
     }
   };
 
@@ -275,6 +283,54 @@ const App: React.FC = () => {
     initialize();
   }, []);
 
+  // Add WebSocket message handler for online bot messages
+  useEffect(() => {
+    const handleWebSocketMessage = async (topic: string, payload: any) => {
+      console.log('🌐 [APP] WebSocket message received:', { topic, type: payload.type });
+      
+      // Handle AI responses from online server
+      if (payload.type === 'ai_response') {
+        console.log('🤖 [APP] Online AI response received:', payload);
+        
+        // Extract response content
+        let responseContent = payload.content;
+        if (!responseContent && payload.data && payload.data.content) {
+          responseContent = payload.data.content;
+        }
+        
+        if (responseContent) {
+          // Create bot message object
+          const botMessage: Message = {
+            id: `bot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            text: responseContent,
+            sender: 'bot',
+            time: new Date().toLocaleTimeString(),
+            timestamp: new Date().toISOString()
+          };
+          
+          console.log('📝 [APP] Created online bot message:', botMessage.id);
+          
+          // Add to messages state
+          setMessages(prevMessages => [...prevMessages, botMessage]);
+          
+          // Save to SQLite
+          console.log('💾 [APP] Saving online bot message to SQLite...');
+          if (currentSessionId) {
+            await saveMessageToSQLite(botMessage, currentSessionId);
+          } else {
+            console.log('⚠️ [APP] No currentSessionId for online bot message, creating new session...');
+            await saveMessageToSQLite(botMessage, '');
+          }
+        } else {
+          console.error('❌ [APP] Online AI response received but no content found:', payload);
+        }
+      }
+    };
+
+    // Register WebSocket message handler
+    ChatService.onMessage(handleWebSocketMessage);
+  }, [currentSessionId]);
+
   useEffect(() => {
     // This effect now only manages the body class based on i18next's state
     const handleLanguageChange = (lng: string): void => {
@@ -303,6 +359,7 @@ const App: React.FC = () => {
   try {
     // Fix: Create a proper message handler function
     const handleSendMessage = async (messageText: string): Promise<void> => {
+      console.log('🔍 [APP] handleSendMessage called with text:', messageText);
       const newMessage: Message = {
         id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         text: messageText,
@@ -311,11 +368,30 @@ const App: React.FC = () => {
         timestamp: new Date().toISOString()
       };
       
+      console.log('📝 [APP] Created new message:', newMessage.id);
       setMessages(prevMessages => [...prevMessages, newMessage]);
       
       // Save to SQLite
+      console.log('💾 [APP] About to save to SQLite, currentSessionId:', currentSessionId);
       if (currentSessionId) {
         await saveMessageToSQLite(newMessage, currentSessionId);
+      } else {
+        console.log('⚠️ [APP] No currentSessionId, creating new session...');
+        await saveMessageToSQLite(newMessage, '');
+      }
+    };
+
+    // Handle bot messages - save them to SQLite
+    const handleBotMessage = async (botMessage: Message): Promise<void> => {
+      console.log('🤖 [APP] handleBotMessage called with message:', botMessage.id);
+      
+      // Save bot message to SQLite
+      console.log('💾 [APP] About to save bot message to SQLite, currentSessionId:', currentSessionId);
+      if (currentSessionId) {
+        await saveMessageToSQLite(botMessage, currentSessionId);
+      } else {
+        console.log('⚠️ [APP] No currentSessionId for bot message, creating new session...');
+        await saveMessageToSQLite(botMessage, '');
       }
     };
 
@@ -337,6 +413,7 @@ const App: React.FC = () => {
         />
         <ChatFooter 
           onSendMessage={handleSendMessage} 
+          onBotMessage={handleBotMessage}
           setMessages={setMessages}
           selectedModel={selectedModel}
           onLoadingChange={handleLoadingChange} // Pass the loading handler

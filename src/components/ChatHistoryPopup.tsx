@@ -22,26 +22,56 @@ const ChatHistoryPopup: React.FC<ChatHistoryPopupProps> = ({ onClose, onSelectSe
 
   const loadChatHistory = async () => {
     try {
+      console.log('🔍 [CHAT HISTORY] Starting to load chat history...');
       setLoading(true);
       setError(null);
       
       const deviceId = await getDeviceId();
+      console.log('📱 [CHAT HISTORY] Device ID:', deviceId);
       if (!deviceId) {
+        console.error('❌ [CHAT HISTORY] No device ID available');
         setError('Unable to get device ID');
         return;
       }
 
       const sqliteService = SQLiteService.getInstance();
-      // Don't reinitialize - it should already be initialized from App.tsx
-      // await sqliteService.initialize(); // Remove this line
+      console.log('🔧 [CHAT HISTORY] SQLiteService instance obtained');
+      
+      // Check if SQLite is initialized
+      console.log('🔍 [CHAT HISTORY] Checking SQLite initialization...');
       
       const history = await sqliteService.getChatHistory(deviceId, 50);
+      console.log('📊 [CHAT HISTORY] Retrieved history:', history);
+      console.log('📊 [CHAT HISTORY] History length:', history?.length || 0);
+      
+      if (history && history.length > 0) {
+        console.log('✅ [CHAT HISTORY] Found', history.length, 'chat sessions');
+        history.forEach((item, index) => {
+          console.log(`📝 [CHAT HISTORY] Session ${index + 1}:`, {
+            session_id: item.session_id,
+            title: item.title,
+            display_title: item.display_title,
+            created_at: item.created_at,
+            formatted_date: item.formatted_date,
+            // message_count: item.message_count // Not available in ChatHistoryItem interface
+          });
+        });
+      } else {
+        console.log('⚠️ [CHAT HISTORY] No chat sessions found');
+      }
+      
       setChatHistory(history);
     } catch (err) {
-      console.error('Error loading chat history:', err);
+      console.error('❌ [CHAT HISTORY] Error loading chat history:', err);
+      console.error('❌ [CHAT HISTORY] Error details:', {
+        name: (err as any)?.name,
+        message: (err as any)?.message,
+        stack: (err as any)?.stack
+      });
       setError('Failed to load chat history');
     } finally {
       setLoading(false);
+      console.log('🏁 [CHAT HISTORY] Loading completed');
     }
   };
 

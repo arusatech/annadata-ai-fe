@@ -109,18 +109,22 @@ const DeviceInfoPopup: React.FC<DeviceInfoPopupProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="language-popup" style={{ display: 'block' }}>
-      <div className="popup-wrapper">
-        <span className="close-btn" onClick={handleClose}>×</span>
-        <div className="popup-content">
+    <div className="popup-backdrop show">
+      <div className="popup-content device-info-popup">
+        <div className="popup-header">
           <h3 style={{ 
-            marginTop: 0, 
+            margin: 0, 
             color: '#333', 
-            textAlign: 'center' 
+            textAlign: 'center',
+            fontSize: '18px',
+            fontWeight: '600'
           }}>
             Device Information
           </h3>
-          
+          <button className="close-btn" onClick={handleClose}>×</button>
+        </div>
+        
+        <div className="device-info-content">
           {renderContent()}
         </div>
       </div>

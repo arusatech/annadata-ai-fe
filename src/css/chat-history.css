@@ -1,9 +1,9 @@
 .popup-content {
     background: white;
     border-radius: 12px; /* Consistent across all devices */
-    width: 72%; /* Reduced by 20% from 90% */
+    width: calc(100vw - 20px); /* Full width minus 20px for 10px margins on each side */
     max-width: 400px; /* Reduced by 20% from 500px */
-    max-height: 63vh; /* Reduced by 10% from 70vh */
+    max-height: 70vh; /* Increased to show more chat history items */
     position: fixed;
     top: 140px; /* Increased from 120px to account for menu height + safe area */
     left: 50%;
@@ -14,15 +14,14 @@
     flex-direction: column;
     /* Enhanced responsive properties */
     min-width: 224px; /* Reduced by 20% from 280px */
-    margin: 0 auto; /* This will ensure equal margins on both sides */
 }
   
   .popup-header {
     position: relative;
-    padding: 2px;
+    padding: 16px 20px 12px 20px;
     border-bottom: 1px solid #e0e0e0;
-    background: linear-gradient(135deg, #333 0%, #000 100%);
-    color: white;
+    background: #f8f9fa;
+    color: #333;
     border-radius: 12px 12px 0 0; /* Consistent with popup-content */
   }
   
@@ -32,13 +31,42 @@
     justify-content: center;
     font-size: 18px;
     font-weight: 600;
+    color: #333;
+    text-align: center;
+  }
+
+  .popup-header .close-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 18px;
+    cursor: pointer;
+    color: #ffffff;
+    background-color: rgb(240, 40, 40);
+    border-radius: 0 12px 0 12px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
+    margin: 0;
+    padding: 0;
+    border: none;
+    line-height: 1;
+  }
+
+  .popup-header .close-btn:hover {
+    background-color: #ff0000;
+    color: #ffffff;
   }
   
   .chat-history-content {
     flex: 1;
     overflow-y: auto;
     padding: 0;
-    max-height: 50vh;
+    max-height: 60vh;
   }
   
   .loading-message,
@@ -153,7 +181,7 @@
   /* Mobile responsiveness */
   @media (max-width: 600px) {
     .chat-history-popup {
-      width: 95%;
+      width: calc(100vw - 20px);
       max-height: 80vh;
     }
     

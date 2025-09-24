@@ -252,15 +252,23 @@ class SQLiteService {
 
   // Session Management
   async createSession(deviceId: string, title?: string): Promise<string> {
+    console.log('🔍 [SQLite] createSession called with deviceId:', deviceId, 'title:', title);
     await this._ensureInitialized();
     
     const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    console.log('🆔 [SQLite] Generated sessionId:', sessionId);
     
-    await Sqlite.execute({
-      databaseId: this.databaseId!, // Use the stored databaseId instead of DB_NAME
-      statement: `INSERT INTO chat_sessions (session_id, device_id, title) VALUES (?, ?, ?)`,
-      values: [sessionId, deviceId, title || 'New Chat']
-    });
+    try {
+      await Sqlite.execute({
+        databaseId: this.databaseId!, // Use the stored databaseId instead of DB_NAME
+        statement: `INSERT INTO chat_sessions (session_id, device_id, title) VALUES (?, ?, ?)`,
+        values: [sessionId, deviceId, title || 'New Chat']
+      });
+      console.log('✅ [SQLite] Session created successfully:', sessionId);
+    } catch (error) {
+      console.error('❌ [SQLite] Error creating session:', error);
+      throw error;
+    }
 
     return sessionId;
   }
@@ -290,12 +298,22 @@ class SQLiteService {
 
   // Message Management
   async saveMessage(message: Omit<ChatMessage, 'id'>): Promise<void> {
+    console.log('🔍 [SQLite] saveMessage called with message:', {
+      message_id: message.message_id,
+      session_id: message.session_id,
+      sender: message.sender,
+      content_length: message.content?.length || 0,
+      is_error: message.is_error
+    });
+    
     await this._ensureInitialized();
     
     await Sqlite.beginTransaction({ databaseId: this.databaseId! });
+    console.log('🔄 [SQLite] Transaction started');
     
     try {
       // Insert message
+      console.log('📝 [SQLite] Inserting message into database...');
       await Sqlite.execute({
         databaseId: this.databaseId!,
         statement: `INSERT INTO messages (message_id, session_id, content, sender, model_used, language, is_error, metadata) 
@@ -311,17 +329,51 @@ class SQLiteService {
           message.metadata ? JSON.stringify(message.metadata) : null
         ]
       });
+      console.log('✅ [SQLite] Message inserted successfully');
 
       // Update session timestamp
+      console.log('🕒 [SQLite] Updating session timestamp...');
       await Sqlite.execute({
         databaseId: this.databaseId!,
         statement: `UPDATE chat_sessions SET updated_at = CURRENT_TIMESTAMP WHERE session_id = ?`,
         values: [message.session_id]
       });
+      console.log('✅ [SQLite] Session timestamp updated');
+
+      // If this is the first user message, update the session title
+      if (message.sender === 'user') {
+        console.log('👤 [SQLite] User message detected, checking if first user message...');
+        
+        // Check if this is the first user message in the session
+        const firstUserMessageResult = await Sqlite.query({
+          databaseId: this.databaseId!,
+          statement: `SELECT COUNT(*) as count FROM messages WHERE session_id = ? AND sender = 'user'`,
+          values: [message.session_id]
+        });
+        
+        const userMessageCount = firstUserMessageResult.rows?.[0]?.[0] as number || 0;
+        console.log('📊 [SQLite] User message count in session:', userMessageCount);
+        
+        if (userMessageCount === 1) {
+          // This is the first user message, update the session title
+          const newTitle = this.formatChatTitle(message.content || 'New Chat');
+          console.log('🏷️ [SQLite] Updating session title to:', newTitle);
+          
+          await Sqlite.execute({
+            databaseId: this.databaseId!,
+            statement: `UPDATE chat_sessions SET title = ? WHERE session_id = ?`,
+            values: [newTitle, message.session_id]
+          });
+          console.log('✅ [SQLite] Session title updated successfully');
+        }
+      }
 
       await Sqlite.commitTransaction({ databaseId: this.databaseId! });
+      console.log('✅ [SQLite] Transaction committed successfully');
     } catch (error) {
+      console.error('❌ [SQLite] Error saving message:', error);
       await Sqlite.rollbackTransaction({ databaseId: this.databaseId! });
+      console.log('🔄 [SQLite] Transaction rolled back');
       throw error;
     }
   }
@@ -351,9 +403,12 @@ class SQLiteService {
 
   // Chat History methods
   async getChatHistory(deviceId: string, limit: number = 50): Promise<ChatHistoryItem[]> {
+    console.log('🔍 [SQLite] getChatHistory called with deviceId:', deviceId, 'limit:', limit);
     await this._ensureInitialized();
+    console.log('✅ [SQLite] Database initialized, proceeding with query');
     
     try {
+      console.log('🔍 [SQLite] Executing chat history query...');
       const result = await Sqlite.query({
         databaseId: this.databaseId!,
         statement: `
@@ -370,17 +425,39 @@ class SQLiteService {
         values: [deviceId, limit]
       });
 
-      return result.rows.map(row => ({
+      console.log('📊 [SQLite] Query result:', result);
+      console.log('📊 [SQLite] Raw rows count:', result.rows?.length || 0);
+      
+      if (result.rows && result.rows.length > 0) {
+        console.log('✅ [SQLite] Found', result.rows.length, 'raw rows');
+        result.rows.forEach((row, index) => {
+          console.log(`📝 [SQLite] Raw row ${index + 1}:`, row);
+        });
+      } else {
+        console.log('⚠️ [SQLite] No rows returned from query');
+      }
+
+      const mappedResult = result.rows.map(row => ({
         session_id: row[0] as string,
         title: row[1] as string,
         created_at: row[2] as string,
         updated_at: row[3] as string,
         first_user_message: row[4] as string || 'New Chat',
-        display_title: this.formatChatTitle(row[1] as string || row[4] as string || 'New Chat'),
+        display_title: this.formatChatTitle(row[4] as string || row[1] as string || 'New Chat'),
         formatted_date: this.formatDate(row[3] as string)
       }));
+
+      console.log('📊 [SQLite] Mapped result:', mappedResult);
+      console.log('📊 [SQLite] Final result count:', mappedResult.length);
+      
+      return mappedResult;
     } catch (error) {
       console.error('❌ [SQLite] Error loading chat history:', error);
+      console.error('❌ [SQLite] Error details:', {
+        name: (error as any)?.name,
+        message: (error as any)?.message,
+        stack: (error as any)?.stack
+      });
       // Return empty array instead of throwing error to handle gracefully
       return [];
     }
