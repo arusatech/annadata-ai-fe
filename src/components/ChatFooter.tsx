@@ -10,6 +10,9 @@ import { CameraService, CameraPhoto } from '../services/CameraService';
 import LlamaService from '../services/LlamaService';
 import SQLiteService from '../services/SQLiteService';
 import { getDeviceId, setCurrentSessionId, getCurrentSessionId } from '../services/DeviceInfoService';
+import DocumentRedactionService, { RedactionResult, DocumentProcessingOptions } from '../services/DocumentRedactionService';
+import RedactionPreview from './RedactionPreview';
+import { Filesystem } from '@capacitor/filesystem';
 
 // Type definitions
 interface Message {
@@ -83,12 +86,110 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
   // NEW: Add state for file attachments
   const [fileAttachments, setFileAttachments] = useState<FileAttachment[]>([]);
   
+  // Redaction state
+  const [showRedactionPreview, setShowRedactionPreview] = useState<boolean>(false);
+  const [currentRedactionResult, setCurrentRedactionResult] = useState<RedactionResult | null>(null);
+  const [currentRedactionFile, setCurrentRedactionFile] = useState<{name: string, type: string} | null>(null);
+  const [isProcessingRedaction, setIsProcessingRedaction] = useState<boolean>(false);
+  
   // Speech service reference
   const speechServiceRef = useRef<SpeechRecognitionService | null>(null);
   const isInitializedRef = useRef<boolean>(false);
 
   // Add LlamaService reference
   const [llamaService] = useState(() => LlamaService.getInstance());
+  
+  // Add DocumentRedactionService reference
+  const [redactionService] = useState(() => DocumentRedactionService.getInstance());
+
+  // Helper function to read file data using Capacitor Filesystem
+  const readFileData = async (file: any): Promise<ArrayBuffer | null> => {
+    try {
+      // First try to get blob data directly
+      if (file.blob) {
+        console.log('📄 Using direct blob data');
+        return await file.blob.arrayBuffer();
+      }
+
+      // Try to use base64 data if available (from file picker with readData: true)
+      if (file.data && typeof file.data === 'string') {
+        console.log('📄 Using base64 data from file picker');
+        try {
+          // Convert base64 to ArrayBuffer
+          const binaryString = atob(file.data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          return bytes.buffer;
+        } catch (base64Error) {
+          console.warn('⚠️ Base64 decoding failed:', base64Error);
+          return null;
+        }
+      }
+
+      // Try to read using Capacitor Filesystem API
+      if (file.path && file.path.startsWith('content://')) {
+        console.log('📄 Attempting to read content:// URI using Filesystem API');
+        try {
+          // Convert content:// URI to a readable path
+          const fileUri = file.path;
+          const fileResult = await Filesystem.readFile({
+            path: fileUri,
+            directory: undefined // Let Capacitor determine the directory
+          });
+          
+          // Convert base64 to ArrayBuffer
+          const binaryString = atob(fileResult.data as string);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          return bytes.buffer;
+        } catch (filesystemError) {
+          console.warn('⚠️ Filesystem API failed:', filesystemError);
+          return null;
+        }
+      }
+
+      // Try webPath if it's not a content:// URI
+      if (file.webPath && !file.webPath.startsWith('content://')) {
+        console.log('📄 Using webPath for file reading:', file.webPath);
+        const response = await fetch(file.webPath);
+        return await response.arrayBuffer();
+      }
+
+      // Try path if it's not a content:// URI
+      if (file.path && !file.path.startsWith('content://')) {
+        console.log('📄 Using path for file reading:', file.path);
+        const response = await fetch(file.path);
+        return await response.arrayBuffer();
+      }
+
+      return null;
+    } catch (error) {
+      console.error('❌ Error reading file data:', error);
+      return null;
+    }
+  };
+
+  // Test redaction service on component mount
+  useEffect(() => {
+    const testRedactionService = async () => {
+      try {
+        console.log('🧪 Testing redaction service initialization...');
+        const isInitialized = redactionService.isServiceInitialized();
+        console.log('✅ Redaction service initialized:', isInitialized);
+        
+        const patterns = redactionService.getRedactionPatterns();
+        console.log('📋 Available redaction patterns:', patterns.length);
+      } catch (error) {
+        console.error('❌ Redaction service test failed:', error);
+      }
+    };
+    
+    testRedactionService();
+  }, [redactionService]);
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -530,10 +631,21 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
           ...fileService.getMimeTypeMappings()[FileType.AUDIO]
         ],
         limit: 5, // Allow up to 5 files
-        readData: false
+        readData: true // Enable reading file data for redaction processing
       });
 
       console.log('✅ Files selected:', result);
+      console.log('🔍 Detailed file info:', result.files?.map(f => ({
+        name: f.name,
+        mimeType: f.mimeType,
+        size: f.size,
+        path: f.path,
+        hasBlob: !!f.blob,
+        blobSize: f.blob?.size,
+        blobType: f.blob?.type,
+        hasData: !!f.data,
+        dataLength: f.data?.length
+      })));
 
       // Process selected files
       if (result.files && result.files.length > 0) {
@@ -542,7 +654,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
           file: file,
           name: file.name || `file_${Date.now()}`,
           size: file.size || 0,
-          type: file.type || 'application/octet-stream',
+          type: file.mimeType || file.type || 'application/octet-stream', // Use mimeType from file picker
           path: file.path,
           webPath: file.webPath
         }));
@@ -550,7 +662,27 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
         // Add files to attachments
         setFileAttachments(prev => [...prev, ...newFileAttachments]);
         
-        // Don't update message text - just show the attachment preview
+        // Process files for redaction if they are PDFs or images
+        for (const attachment of newFileAttachments) {
+          const mimeType = attachment.type || 'application/octet-stream';
+          console.log('🔍 Checking file for redaction:', {
+            name: attachment.name,
+            type: attachment.type,
+            mimeType: attachment.file?.mimeType,
+            hasBlob: !!attachment.file?.blob,
+            hasWebPath: !!attachment.file?.webPath,
+            webPath: attachment.file?.webPath,
+            hasPath: !!attachment.file?.path,
+            path: attachment.file?.path
+          });
+          
+          if (mimeType === 'application/pdf' || mimeType.startsWith('image/')) {
+            console.log('🔍 Triggering redaction processing for:', attachment.name);
+            await processFileForRedaction(attachment.file, attachment.name);
+          } else {
+            console.log('ℹ️ Skipping redaction for non-PDF/image file:', attachment.name);
+          }
+        }
         
         console.log('✅ Files attached to input:', newFileAttachments);
       }
@@ -617,7 +749,9 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
       // Add photo to attachments
       setPhotoAttachments(prev => [...prev, photoAttachment]);
       
-      // Don't update message text - just show the attachment preview
+      // Process photo for redaction
+      console.log('🔍 Triggering redaction processing for photo:', photoAttachment.name);
+      await processFileForRedaction(photo, photoAttachment.name);
       
       console.log('✅ Photo attached to input:', photoAttachment);
 
@@ -685,7 +819,9 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
       // Add photo to attachments
       setPhotoAttachments(prev => [...prev, photoAttachment]);
       
-      // Don't update message text - just show the attachment preview
+      // Process photo for redaction
+      console.log('🔍 Triggering redaction processing for photo:', photoAttachment.name);
+      await processFileForRedaction(photo, photoAttachment.name);
       
       console.log('✅ Photo attached to input:', photoAttachment);
 
@@ -717,6 +853,108 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
     setFileAttachments(prev => prev.filter(file => file.id !== fileId));
     
     console.log('🗑️ File attachment removed:', fileId);
+  };
+
+  // Process file for redaction
+  const processFileForRedaction = async (file: any, fileName: string): Promise<void> => {
+    try {
+      setIsProcessingRedaction(true);
+      console.log('🔍 Processing file for sensitive content:', fileName);
+
+      // Get file buffer using the helper function
+      let fileBuffer: ArrayBuffer | null = await readFileData(file);
+      let mimeType = file.mimeType || file.type || 'application/octet-stream';
+
+      if (!fileBuffer) {
+        // For content:// URIs or when we can't read the file directly,
+        // we'll skip redaction processing and show a warning
+        console.warn('⚠️ Cannot process file for redaction - unsupported URI scheme or missing data');
+        handleUnprocessableFile(fileName);
+        return;
+      }
+
+      // Default redaction options
+      const redactionOptions: Partial<DocumentProcessingOptions> = {
+        enablePIIRedaction: true,
+        enableFinancialRedaction: true,
+        enableMedicalRedaction: true,
+        enableLegalRedaction: true,
+        enableMetadataRedaction: true,
+        confidenceThreshold: 0.7,
+        preserveFormatting: true,
+        userConfirmationRequired: true
+      };
+
+      let redactionResult: RedactionResult;
+
+      // Process based on file type
+      if (mimeType === 'application/pdf') {
+        console.log('📄 Processing as PDF document');
+        redactionResult = await redactionService.processPDF(fileBuffer, redactionOptions);
+      } else if (mimeType.startsWith('image/')) {
+        console.log('🖼️ Processing as image document');
+        redactionResult = await redactionService.processImage(fileBuffer, mimeType, redactionOptions);
+      } else {
+        throw new Error(`File type ${mimeType} is not supported for redaction`);
+      }
+
+      console.log('✅ Redaction processing completed:', {
+        totalRedactions: redactionResult.redactedAreas.length,
+        confidence: redactionResult.confidence,
+        extractedTextLength: redactionResult.extractedText.length
+      });
+
+      // Show redaction preview
+      setCurrentRedactionResult(redactionResult);
+      setCurrentRedactionFile({ name: fileName, type: mimeType });
+      setShowRedactionPreview(true);
+
+    } catch (error) {
+      console.error('❌ Redaction processing failed:', error);
+      addErrorMessage(`Failed to process ${fileName} for sensitive content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsProcessingRedaction(false);
+    }
+  };
+
+  // Handle redaction confirmation
+  const handleRedactionConfirm = (result: RedactionResult): void => {
+    console.log('✅ Redaction confirmed, proceeding with safe content');
+    
+    // Hide redaction preview
+    setShowRedactionPreview(false);
+    setCurrentRedactionResult(null);
+    setCurrentRedactionFile(null);
+
+    // Add the redacted content to the message
+    if (result.extractedText.trim()) {
+      const redactedMessage = `📄 Document Content (Redacted):\n\n${result.extractedText}`;
+      setMessage(prev => prev ? `${prev}\n\n${redactedMessage}` : redactedMessage);
+    } else {
+      addErrorMessage('No text content could be extracted from the document after redaction.');
+    }
+  };
+
+  // Handle files that cannot be processed for redaction
+  const handleUnprocessableFile = (fileName: string): void => {
+    console.log('⚠️ File cannot be processed for redaction, adding warning message');
+    const warningMessage = `⚠️ File "${fileName}" attached but cannot be processed for sensitive content redaction. Please ensure no sensitive information is included before sending to AI.`;
+    setMessage(prev => prev ? `${prev}\n\n${warningMessage}` : warningMessage);
+  };
+
+  // Handle redaction cancellation
+  const handleRedactionCancel = (): void => {
+    console.log('❌ Redaction cancelled by user');
+    setShowRedactionPreview(false);
+    setCurrentRedactionResult(null);
+    setCurrentRedactionFile(null);
+  };
+
+  // Handle redaction settings modification
+  const handleRedactionSettingsModify = (): void => {
+    console.log('⚙️ Redaction settings modification requested');
+    // TODO: Implement settings modal
+    addErrorMessage('Redaction settings modification not yet implemented.');
   };
 
   // Enhanced photo upload function
@@ -757,20 +995,19 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
       // Create FormData for file upload
       const formData = new FormData();
       
-      // If we have the file object, use it directly
-      if (attachment.file && attachment.file.blob) {
-        formData.append('file', attachment.file.blob, attachment.name);
-      } else {
-        // Otherwise, try to fetch the file from path
-        try {
-          const response = await fetch(attachment.path);
-          const blob = await response.blob();
-          formData.append('file', blob, attachment.name);
-        } catch (fetchError) {
-          console.error('❌ Could not fetch file from path:', fetchError);
-          throw new Error('Could not read file data');
-        }
+      // Use the helper function to read file data
+      const fileBuffer = await readFileData(attachment.file);
+      
+      if (!fileBuffer) {
+        // For content:// URIs or when we can't read the file directly,
+        // we'll skip the upload and show a warning
+        console.warn('⚠️ Cannot upload file - unsupported URI scheme or missing data');
+        throw new Error(`Cannot upload ${attachment.name} - file data not accessible`);
       }
+      
+      // Convert ArrayBuffer to Blob
+      const blob = new Blob([fileBuffer], { type: attachment.type });
+      formData.append('file', blob, attachment.name);
       
       // Add metadata
       formData.append('timestamp', new Date().toISOString());
@@ -1224,6 +1461,18 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
 
   return (
     <div className="chat-footer">
+      {/* Redaction Preview Modal */}
+      {showRedactionPreview && currentRedactionResult && currentRedactionFile && (
+        <RedactionPreview
+          redactionResult={currentRedactionResult}
+          fileName={currentRedactionFile.name}
+          fileType={currentRedactionFile.type}
+          onConfirm={handleRedactionConfirm}
+          onCancel={handleRedactionCancel}
+          onModifySettings={handleRedactionSettingsModify}
+        />
+      )}
+
       {/* Photo attachments preview */}
       {photoAttachments.length > 0 && (
         <div className="photo-attachments-preview">

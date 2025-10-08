@@ -46,6 +46,7 @@
     "llama-cpp-capacitor": "^0.0.21",
     "markdown-it": "^14.1.0",
     "markdown-it-katex": "^2.0.3",
+    "mupdf": "^1.26.4",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-i18next": "^15.6.0",
