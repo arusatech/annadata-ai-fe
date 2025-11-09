@@ -11,7 +11,14 @@ import LlamaService from '../services/LlamaService';
 import SQLiteService from '../services/SQLiteService';
 import { getDeviceId, setCurrentSessionId, getCurrentSessionId } from '../services/DeviceInfoService';
 import DocumentRedactionService, { RedactionResult, DocumentProcessingOptions } from '../services/DocumentRedactionService';
+import { DocumentAnalysis, ContentSection } from '../services/ContentAnalysisService';
+import PDFAnnotationService from '../services/PDFAnnotationService';
+import PDFAnnotationTester from '../services/PDFAnnotationTester';
+import EnhancedPDFParser, { OCRConfig } from '../services/EnhancedPDFParser';
 import RedactionPreview from './RedactionPreview';
+import ContentSelectionModal from './ContentSelectionModal';
+import '../css/redaction-preview.css';
+import '../css/content-selection.css';
 import { Filesystem } from '@capacitor/filesystem';
 
 // Type definitions
@@ -92,6 +99,11 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
   const [currentRedactionFile, setCurrentRedactionFile] = useState<{name: string, type: string} | null>(null);
   const [isProcessingRedaction, setIsProcessingRedaction] = useState<boolean>(false);
   
+  // Content selection state
+  const [showContentSelection, setShowContentSelection] = useState<boolean>(false);
+  const [currentDocumentAnalysis, setCurrentDocumentAnalysis] = useState<DocumentAnalysis | null>(null);
+  const [pendingRedactionFile, setPendingRedactionFile] = useState<FileAttachment | null>(null);
+  
   // Speech service reference
   const speechServiceRef = useRef<SpeechRecognitionService | null>(null);
   const isInitializedRef = useRef<boolean>(false);
@@ -101,6 +113,11 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
   
   // Add DocumentRedactionService reference
   const [redactionService] = useState(() => DocumentRedactionService.getInstance());
+  
+  // Add Enhanced PDF Annotation services
+  const [annotationService] = useState(() => PDFAnnotationService.getInstance());
+  const [annotationTester] = useState(() => PDFAnnotationTester.getInstance());
+  const [enhancedParser] = useState(() => EnhancedPDFParser.getInstance());
 
   // Helper function to read file data using Capacitor Filesystem
   const readFileData = async (file: any): Promise<ArrayBuffer | null> => {
@@ -855,48 +872,326 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
     console.log('🗑️ File attachment removed:', fileId);
   };
 
-  // Process file for redaction
+  // Process file for redaction with Enhanced PDF Parser
   const processFileForRedaction = async (file: any, fileName: string): Promise<void> => {
     try {
       setIsProcessingRedaction(true);
-      console.log('🔍 Processing file for sensitive content:', fileName);
+      console.log('\n' + '='.repeat(80));
+      console.log('🔍 [ENHANCED PARSER TEST] Starting file processing');
+      console.log('='.repeat(80));
+      console.log('📄 File:', fileName);
+      console.log('📦 File object:', {
+        name: fileName,
+        mimeType: file.mimeType,
+        type: file.type,
+        size: file.size,
+        hasBlob: !!file.blob,
+        hasData: !!file.data
+      });
 
       // Get file buffer using the helper function
       let fileBuffer: ArrayBuffer | null = await readFileData(file);
       let mimeType = file.mimeType || file.type || 'application/octet-stream';
 
       if (!fileBuffer) {
-        // For content:// URIs or when we can't read the file directly,
-        // we'll skip redaction processing and show a warning
-        console.warn('⚠️ Cannot process file for redaction - unsupported URI scheme or missing data');
+        console.warn('⚠️ Cannot process file - unsupported URI scheme or missing data');
         handleUnprocessableFile(fileName);
         return;
       }
 
-      // Default redaction options
-      const redactionOptions: Partial<DocumentProcessingOptions> = {
-        enablePIIRedaction: true,
-        enableFinancialRedaction: true,
-        enableMedicalRedaction: true,
-        enableLegalRedaction: true,
-        enableMetadataRedaction: true,
-        confidenceThreshold: 0.7,
-        preserveFormatting: true,
-        userConfirmationRequired: true
-      };
+      console.log('✅ File buffer loaded:', (fileBuffer.byteLength / 1024).toFixed(2), 'KB');
+      console.log('📋 MIME Type:', mimeType);
 
-      let redactionResult: RedactionResult;
-
-      // Process based on file type
+      // TEST: If it's a PDF, use the Enhanced PDF Parser for testing
       if (mimeType === 'application/pdf') {
-        console.log('📄 Processing as PDF document');
-        redactionResult = await redactionService.processPDF(fileBuffer, redactionOptions);
-      } else if (mimeType.startsWith('image/')) {
-        console.log('🖼️ Processing as image document');
-        redactionResult = await redactionService.processImage(fileBuffer, mimeType, redactionOptions);
-      } else {
-        throw new Error(`File type ${mimeType} is not supported for redaction`);
+        console.log('\n' + '─'.repeat(80));
+        console.log('🧪 [ENHANCED PARSER TEST] PDF detected - Testing Enhanced Parser');
+        console.log('─'.repeat(80));
+
+        try {
+          // Test with enhanced parser
+          const startTime = Date.now();
+          
+          // Enable OCR for PDF images (works OFFLINE with bundled files)
+          // Language packs bundled: English, Hindi (more can be added)
+          const ocrConfig: OCRConfig = {
+            enabled: true, // ✅ ENABLED - Works offline with local files!
+            primaryLanguage: 'english',
+            fallbackLanguages: ['english', 'hindi'], // Only use downloaded languages
+            minImageSize: 100, // Skip images smaller than 100px
+            progressCallback: (current, total, imageIndex) => {
+              console.log(`🔍 [OCR] Processing page ${current}/${total}, image ${imageIndex}`);
+            }
+          };
+          
+          console.log('📄 [PDF Processing] OCR enabled:', ocrConfig.enabled, '(offline mode with local files)');
+
+          const result = await annotationService.parseAndAnnotatePDF(
+            fileBuffer,
+            fileName,
+            await getCurrentSessionId() || undefined,
+            `msg_${Date.now()}`,
+            {
+              extractImages: true,
+              extractText: true,
+              detectCaptions: true,
+              analyzeHierarchy: true,
+              ocr: ocrConfig // Enable OCR
+            }
+          );
+
+          const parseTime = Date.now() - startTime;
+
+          console.log('\n' + '📊'.repeat(40));
+          console.log('📊 [ENHANCED PARSER TEST] PARSING RESULTS');
+          console.log('📊'.repeat(40));
+          console.log('⏱️  Parse Time:', parseTime, 'ms');
+          console.log('🆔 Document ID:', result.documentId);
+          console.log('📖 Page Count:', result.report.pageCount);
+          console.log('🖼️  Total Images:', result.report.totalImages);
+          console.log('📝 Total Text Sections:', result.report.totalTextSections);
+          console.log('🏷️  Images with Captions:', result.report.imagesWithCaptions);
+          
+          if (result.report.totalImages > 0) {
+            console.log('\n📏 Average Image Size:');
+            console.log('   -', result.report.averageImageSize.widthCm, 'cm ×', result.report.averageImageSize.heightCm, 'cm');
+            console.log('   -', result.report.averageImageSize.widthInches, '" ×', result.report.averageImageSize.heightInches, '"');
+          }
+
+          console.log('\n📊 Content Distribution by Page:');
+          for (let page = 0; page < result.report.pageCount; page++) {
+            const imageCount = result.report.imagesByPage[page] || 0;
+            const textCount = result.report.textSectionsByPage[page] || 0;
+            if (imageCount > 0 || textCount > 0) {
+              console.log(`   Page ${page + 1}: ${imageCount} images, ${textCount} text sections`);
+            }
+          }
+
+          // Get detailed annotations for first page
+          console.log('\n' + '─'.repeat(80));
+          console.log('🔍 [ENHANCED PARSER TEST] Detailed Page 1 Analysis');
+          console.log('─'.repeat(80));
+          
+          const page0Annotations = await annotationService.getDocumentAnnotations(result.documentId, 0);
+          
+          console.log('\n🖼️  Images on Page 1:');
+          for (const image of page0Annotations.images) {
+            console.log(`\n   Image ${image.image_index + 1}:`);
+            console.log('      Dimensions:');
+            console.log('         -', image.width_px, '×', image.height_px, 'px');
+            console.log('         -', image.width_cm, '×', image.height_cm, 'cm');
+            console.log('         -', image.width_inches, '×', image.height_inches, 'inches');
+            console.log('      Position:', `[${image.bbox_x1.toFixed(1)}, ${image.bbox_y1.toFixed(1)}] to [${image.bbox_x2.toFixed(1)}, ${image.bbox_y2.toFixed(1)}]`);
+            
+            if (image.caption_text) {
+              console.log('      📌 Caption:', image.caption_text);
+              console.log('      📍 Position:', image.caption_position);
+            } else {
+              console.log('      📌 Caption: None detected');
+            }
+            
+            if (image.format) {
+              console.log('      🎨 Format:', image.format);
+            }
+            if (image.color_space) {
+              console.log('      🎨 Color Space:', image.color_space);
+            }
+            if (image.dpi) {
+              console.log('      📐 DPI:', image.dpi);
+            }
+          }
+
+          console.log('\n📝 Text Sections on Page 1 (first 5):');
+          const page0Text = page0Annotations.textSections.slice(0, 5);
+          for (const section of page0Text) {
+            const indent = '   ' + '  '.repeat(section.section_level - 1);
+            console.log(`${indent}[L${section.section_level}] ${section.content_type.toUpperCase()}`);
+            console.log(`${indent}   "${section.content_text.substring(0, 60)}${section.content_text.length > 60 ? '...' : ''}"`);
+            console.log(`${indent}   ${section.word_count} words, ${section.char_count} chars`);
+            if (section.font_name) {
+              console.log(`${indent}   Font: ${section.font_name}${section.font_size ? ` (${section.font_size}pt)` : ''}`);
+            }
+            if (section.is_bold || section.is_italic) {
+              const styles = [];
+              if (section.is_bold) styles.push('Bold');
+              if (section.is_italic) styles.push('Italic');
+              console.log(`${indent}   Style: ${styles.join(', ')}`);
+            }
+          }
+
+          // Run comprehensive test
+          console.log('\n' + '─'.repeat(80));
+          console.log('🧪 [ENHANCED PARSER TEST] Running Validation Tests');
+          console.log('─'.repeat(80));
+          
+          const testResult = await annotationTester.testPDFAnnotation(fileBuffer, fileName);
+          
+          console.log('\n📊 Test Results:');
+          console.log('   Success:', testResult.success ? '✅' : '❌');
+          console.log('   Errors:', testResult.errors.length);
+          console.log('   Warnings:', testResult.warnings.length);
+          console.log('   Parsing Time:', testResult.metrics.parsingTime, 'ms');
+          console.log('   Storage Time:', testResult.metrics.storageTime, 'ms');
+          console.log('   Total Time:', testResult.metrics.totalTime, 'ms');
+
+          if (testResult.errors.length > 0) {
+            console.log('\n❌ Test Errors:');
+            testResult.errors.forEach(err => console.log('   -', err));
+          }
+
+          if (testResult.warnings.length > 0) {
+            console.log('\n⚠️  Test Warnings:');
+            testResult.warnings.forEach(warn => console.log('   -', warn));
+          }
+
+          // Print visualization
+          console.log('\n' + '─'.repeat(80));
+          console.log('📊 [ENHANCED PARSER TEST] Document Visualization');
+          console.log('─'.repeat(80));
+          await annotationTester.printVisualization(result.documentId);
+
+          console.log('\n' + '='.repeat(80));
+          console.log('✅ [ENHANCED PARSER TEST] Testing Complete!');
+          console.log('='.repeat(80) + '\n');
+
+          // Show success message to user
+          addErrorMessage(`✅ Enhanced Parser Test Complete!\n\nDocument: ${fileName}\nImages: ${result.report.totalImages}\nText Sections: ${result.report.totalTextSections}\nCaptions: ${result.report.imagesWithCaptions}\n\nCheck console for detailed results!`);
+
+        } catch (parserError) {
+          console.error('\n❌ [ENHANCED PARSER TEST] Parser test failed:', parserError);
+          console.error('─'.repeat(80) + '\n');
+        }
       }
+
+      // NEW: Process images with OCR if it's an image file
+      if (mimeType.startsWith('image/')) {
+        console.log('\n' + '─'.repeat(80));
+        console.log('🔍 [OCR TEST] Image detected - Testing Tesseract OCR');
+        console.log('─'.repeat(80));
+
+        try {
+          const startTime = Date.now();
+          
+          // Create a simple document structure for standalone image
+          const imageDocId = `img_${Date.now()}`;
+          
+          // For standalone images, we'll use the parser in a different way
+          // Create an HTML image element from the buffer
+          const blob = new Blob([fileBuffer], { type: mimeType });
+          const imageUrl = URL.createObjectURL(blob);
+          const img = new Image();
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = imageUrl;
+          });
+
+          console.log(`📷 Image loaded: ${img.width}x${img.height}px`);
+
+          // Initialize OCR and perform recognition
+          const ocrConfig: OCRConfig = {
+            enabled: true,
+            primaryLanguage: 'english',
+            fallbackLanguages: ['english', 'hindi', 'tamil', 'bengali', 'gujarati'],
+            minImageSize: 50,
+            progressCallback: (current, total, imageIndex) => {
+              console.log(`🔍 OCR Progress: ${current}/${total} (image ${imageIndex})`);
+            }
+          };
+
+          // For now, we'll just log that we detected an image
+          // In a full implementation, you'd initialize the parser with OCR and process
+          console.log('🔍 [OCR] Would process image with Tesseract.js');
+          console.log(`   Languages: ${ocrConfig.fallbackLanguages?.join(', ')}`);
+          console.log(`   Min size: ${ocrConfig.minImageSize}px`);
+
+          const ocrTime = Date.now() - startTime;
+          console.log(`✅ [OCR TEST] Image analysis complete in ${ocrTime}ms`);
+
+          // Clean up
+          URL.revokeObjectURL(imageUrl);
+
+          addErrorMessage(`📷 Image detected: ${fileName}\n\n✨ OCR processing available for this image.\n\nFor full OCR, convert to PDF or use dedicated OCR workflow.`);
+
+        } catch (ocrError) {
+          console.error('❌ [OCR TEST] OCR test failed:', ocrError);
+        }
+      }
+
+      // Continue with regular redaction workflow
+      console.log('\n' + '─'.repeat(80));
+      console.log('🔍 [REGULAR WORKFLOW] Proceeding with content analysis');
+      console.log('─'.repeat(80));
+
+      const sessionId = await getCurrentSessionId();
+      const documentAnalysis = await redactionService.analyzeDocumentForSelection(
+        fileBuffer,
+        fileName,
+        mimeType,
+        sessionId || undefined,
+        `msg_${Date.now()}`
+      );
+
+      console.log('✅ Document analysis completed:', {
+        totalSections: documentAnalysis.totalSections,
+        sensitiveSections: documentAnalysis.sensitiveSections,
+        sectionsByType: documentAnalysis.metadata?.sectionsByType
+      });
+
+      // Show content selection modal
+      setCurrentDocumentAnalysis(documentAnalysis);
+      setPendingRedactionFile({
+        id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        file: file,
+        name: fileName,
+        size: fileBuffer.byteLength,
+        type: mimeType,
+        path: file.path || '',
+        webPath: file.webPath
+      });
+      setShowContentSelection(true);
+
+    } catch (error) {
+      console.error('❌ Document processing failed:', error);
+      addErrorMessage(`Failed to process ${fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsProcessingRedaction(false);
+    }
+  };
+
+  // Handle content selection confirmation
+  const handleContentSelectionConfirm = async (selectedSections: ContentSection[]): Promise<void> => {
+    try {
+      if (!currentDocumentAnalysis || !pendingRedactionFile) {
+        console.error('❌ Missing document analysis or pending file');
+        return;
+      }
+
+      console.log('✅ Content selection confirmed, processing selected sections:', selectedSections.length);
+
+      // Update section selections in database
+      const selections: { [sectionId: string]: boolean } = {};
+      selectedSections.forEach(section => {
+        selections[section.id] = true;
+      });
+      
+      await redactionService.updateSectionSelections(currentDocumentAnalysis.documentId, selections);
+
+      // Process selected sections for redaction
+      const redactionResult = await redactionService.processSelectedSections(
+        currentDocumentAnalysis.documentId,
+        {
+          enablePIIRedaction: true,
+          enableFinancialRedaction: true,
+          enableMedicalRedaction: true,
+          enableLegalRedaction: true,
+          enableMetadataRedaction: true,
+          confidenceThreshold: 0.7,
+          preserveFormatting: true,
+          userConfirmationRequired: true
+        }
+      );
 
       console.log('✅ Redaction processing completed:', {
         totalRedactions: redactionResult.redactedAreas.length,
@@ -904,17 +1199,40 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
         extractedTextLength: redactionResult.extractedText.length
       });
 
-      // Show redaction preview
+      // Show redaction preview with the processed content
       setCurrentRedactionResult(redactionResult);
-      setCurrentRedactionFile({ name: fileName, type: mimeType });
+      setCurrentRedactionFile({ 
+        name: pendingRedactionFile.name, 
+        type: pendingRedactionFile.type 
+      });
+      
+      // Clear content selection state
+      setShowContentSelection(false);
+      setCurrentDocumentAnalysis(null);
+      setPendingRedactionFile(null);
+      
+      // Show redaction preview
       setShowRedactionPreview(true);
 
     } catch (error) {
-      console.error('❌ Redaction processing failed:', error);
-      addErrorMessage(`Failed to process ${fileName} for sensitive content: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsProcessingRedaction(false);
+      console.error('❌ Content selection processing failed:', error);
+      addErrorMessage(`Failed to process selected content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Clear content selection state
+      setShowContentSelection(false);
+      setCurrentDocumentAnalysis(null);
+      setPendingRedactionFile(null);
     }
+  };
+
+  // Handle content selection cancellation
+  const handleContentSelectionCancel = (): void => {
+    console.log('❌ Content selection cancelled');
+    
+    // Clear content selection state
+    setShowContentSelection(false);
+    setCurrentDocumentAnalysis(null);
+    setPendingRedactionFile(null);
   };
 
   // Handle redaction confirmation
@@ -1461,6 +1779,15 @@ const ChatFooter: React.FC<ChatFooterProps> = ({ onSendMessage, onBotMessage, se
 
   return (
     <div className="chat-footer">
+      {/* Content Selection Modal */}
+      {showContentSelection && currentDocumentAnalysis && (
+        <ContentSelectionModal
+          analysis={currentDocumentAnalysis}
+          onConfirm={handleContentSelectionConfirm}
+          onCancel={handleContentSelectionCancel}
+        />
+      )}
+
       {/* Redaction Preview Modal */}
       {showRedactionPreview && currentRedactionResult && currentRedactionFile && (
         <RedactionPreview

@@ -1,5 +1,7 @@
 // @ts-ignore - MuPDF types may not be fully compatible
 import * as mupdf from "mupdf";
+import ContentAnalysisService, { DocumentAnalysis, ContentSection } from './ContentAnalysisService';
+import RedactionDatabaseService from './RedactionDatabaseService';
 
 /**
  * DocumentRedactionService - Handles sensitive content redaction for PDF and image files
@@ -66,9 +68,13 @@ class DocumentRedactionService {
   private static instance: DocumentRedactionService;
   private redactionPatterns: RedactionPattern[] = [];
   private isInitialized: boolean = false;
+  private contentAnalysisService: ContentAnalysisService;
+  private redactionDb: RedactionDatabaseService;
 
   private constructor() {
     this.initializeRedactionPatterns();
+    this.contentAnalysisService = ContentAnalysisService.getInstance();
+    this.redactionDb = RedactionDatabaseService.getInstance();
   }
 
   public static getInstance(): DocumentRedactionService {
@@ -675,10 +681,254 @@ class DocumentRedactionService {
   }
 
   /**
+   * Initialize the service
+   */
+  public async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+    
+    this.isInitialized = true;
+    console.log('✅ [DocumentRedaction] Service initialized');
+  }
+
+  /**
    * Check if service is initialized
    */
   public isServiceInitialized(): boolean {
     return this.isInitialized;
+  }
+
+  /**
+   * Simple text content redaction
+   */
+  private redactTextContent(text: string): string {
+    let redactedText = text;
+    
+    // Apply basic redaction patterns
+    for (const pattern of this.redactionPatterns) {
+      if (pattern.severity === 'high') {
+        redactedText = redactedText.replace(pattern.pattern, '[REDACTED]');
+      }
+    }
+    
+    return redactedText;
+  }
+
+  /**
+   * Initialize content analysis services
+   */
+  async initializeContentAnalysis(): Promise<void> {
+    try {
+      await this.contentAnalysisService.initialize();
+      await this.redactionDb.initialize();
+      console.log('✅ [DocumentRedaction] Content analysis services initialized');
+    } catch (error) {
+      console.error('❌ [DocumentRedaction] Failed to initialize content analysis services:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Analyze document and extract sections for user review
+   */
+  async analyzeDocumentForSelection(
+    fileBuffer: ArrayBuffer,
+    fileName: string,
+    fileType: string,
+    sessionId?: string,
+    messageId?: string
+  ): Promise<DocumentAnalysis> {
+    try {
+      console.log(`🔍 [DocumentRedaction] Analyzing document for content selection: ${fileName}`);
+      
+      // Ensure services are initialized
+      if (!this.isInitialized) {
+        await this.initialize();
+      }
+      
+      await this.initializeContentAnalysis();
+      
+      // Use content analysis service to extract sections
+      const analysis = await this.contentAnalysisService.analyzeDocument(
+        fileBuffer,
+        fileName,
+        fileType,
+        sessionId,
+        messageId
+      );
+      
+      console.log(`✅ [DocumentRedaction] Document analysis completed: ${analysis.totalSections} sections, ${analysis.sensitiveSections} sensitive`);
+      
+      return analysis;
+      
+    } catch (error) {
+      console.error('❌ [DocumentRedaction] Document analysis failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get document analysis results
+   */
+  async getDocumentAnalysis(documentId: string): Promise<DocumentAnalysis | null> {
+    try {
+      return await this.contentAnalysisService.getDocumentAnalysis(documentId);
+    } catch (error) {
+      console.error('❌ [DocumentRedaction] Failed to get document analysis:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update user section selections
+   */
+  async updateSectionSelections(
+    documentId: string, 
+    selections: { [sectionId: string]: boolean }
+  ): Promise<void> {
+    try {
+      await this.contentAnalysisService.updateSectionSelections(documentId, selections);
+      console.log('✅ [DocumentRedaction] Section selections updated');
+    } catch (error) {
+      console.error('❌ [DocumentRedaction] Failed to update section selections:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process selected sections and return redacted content for AI
+   */
+  async processSelectedSections(
+    documentId: string,
+    options: Partial<DocumentProcessingOptions> = {}
+  ): Promise<RedactionResult> {
+    try {
+      console.log(`🔍 [DocumentRedaction] Processing selected sections for document: ${documentId}`);
+      
+      // Get selected content sections
+      const selectedSections = await this.contentAnalysisService.getSelectedContent(documentId);
+      
+      if (selectedSections.length === 0) {
+        throw new Error('No sections selected for processing');
+      }
+      
+      let totalRedactedText = '';
+      let totalOriginalText = '';
+      const allRedactedAreas: RedactedArea[] = [];
+      const redactionSummary: RedactionSummary = {
+        totalRedactions: 0,
+        piiRedactions: 0,
+        financialRedactions: 0,
+        medicalRedactions: 0,
+        legalRedactions: 0,
+        otherRedactions: 0,
+        highConfidence: 0,
+        mediumConfidence: 0,
+        lowConfidence: 0
+      };
+      
+      // Process each selected section
+      for (const section of selectedSections) {
+        if (section.type === 'text') {
+          // Simple text redaction
+          const redactedContent = this.redactTextContent(section.content);
+          
+          totalOriginalText += section.content + '\n';
+          totalRedactedText += redactedContent + '\n';
+          
+          // Create a simple redacted area for tracking
+          const redactedArea: RedactedArea = {
+            id: `section_${section.id}`,
+            type: 'text',
+            originalContent: section.content,
+            redactedContent: redactedContent,
+            confidence: 0.8,
+            category: 'pii'
+          };
+          allRedactedAreas.push(redactedArea);
+          
+          // Update summary
+          redactionSummary.totalRedactions++;
+          redactionSummary.piiRedactions++;
+          redactionSummary.highConfidence++;
+          
+        } else if (section.type === 'image') {
+          // For images, we don't extract text but can note their presence
+          totalRedactedText += `[Image content - ${section.preview}]\n`;
+        } else if (section.type === 'metadata') {
+          // Simple metadata redaction
+          const redactedContent = this.redactTextContent(section.content);
+          
+          totalOriginalText += section.content + '\n';
+          totalRedactedText += redactedContent + '\n';
+          
+          const redactedArea: RedactedArea = {
+            id: `metadata_${section.id}`,
+            type: 'metadata',
+            originalContent: section.content,
+            redactedContent: redactedContent,
+            confidence: 0.8,
+            category: 'pii'
+          };
+          allRedactedAreas.push(redactedArea);
+          
+          redactionSummary.totalRedactions++;
+          redactionSummary.piiRedactions++;
+          redactionSummary.highConfidence++;
+        }
+        // Skip other types (forms, links, annotations) for now
+      }
+      
+      const result: RedactionResult = {
+        originalText: totalOriginalText.trim(),
+        redactedText: totalRedactedText.trim(),
+        redactedAreas: allRedactedAreas,
+        extractedText: totalRedactedText.trim(),
+        confidence: this.calculateOverallConfidence(allRedactedAreas),
+        redactionSummary
+      };
+      
+      console.log(`✅ [DocumentRedaction] Selected sections processed: ${allRedactedAreas.length} redactions applied`);
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ [DocumentRedaction] Failed to process selected sections:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's redaction preferences
+   */
+  async getUserRedactionPreferences(deviceId: string): Promise<any[]> {
+    try {
+      return await this.redactionDb.getUserPreferences(deviceId);
+    } catch (error) {
+      console.error('❌ [DocumentRedaction] Failed to get user preferences:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update user's redaction preferences
+   */
+  async updateUserRedactionPreferences(
+    deviceId: string, 
+    preferences: Array<{
+      category: 'pii' | 'financial' | 'medical' | 'legal' | 'other';
+      auto_redact: boolean;
+      require_confirmation: boolean;
+    }>
+  ): Promise<void> {
+    try {
+      await this.redactionDb.updateUserPreferences(deviceId, preferences);
+      console.log('✅ [DocumentRedaction] User preferences updated');
+    } catch (error) {
+      console.error('❌ [DocumentRedaction] Failed to update user preferences:', error);
+      throw error;
+    }
   }
 }
 

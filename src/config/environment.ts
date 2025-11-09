@@ -25,27 +25,26 @@ const ENV: Record<string, EnvironmentConfig> = {
 
 // Detect environment ONCE at module load
 const detectedEnv = ((): string => {
-  console.log('[Env] Debug - REACT_APP_ENV:', process.env.REACT_APP_ENV);
-  console.log('[Env] Debug - NODE_ENV:', process.env.NODE_ENV);
-  console.log('[Env] Debug - Vite DEV:', import.meta.env?.DEV);
-  console.log('[Env] Debug - Vite MODE:', import.meta.env?.MODE);
-  console.log('[Env] Debug - Vite BASE_URL:', import.meta.env?.BASE_URL);
-  console.log('[Env] Debug - All env vars:', Object.keys(process.env).filter(key => key.includes('ENV') || key.includes('MODE')));
+  console.log('[Env] Debug - VITE_APP_ENV:', import.meta.env.VITE_APP_ENV);
+  console.log('[Env] Debug - MODE:', import.meta.env.MODE);
+  console.log('[Env] Debug - DEV:', import.meta.env.DEV);
+  console.log('[Env] Debug - PROD:', import.meta.env.PROD);
+  console.log('[Env] Debug - BASE_URL:', import.meta.env.BASE_URL);
   
   // Priority order for environment detection
-  if (process.env.REACT_APP_ENV) {
-    console.log('[Env] Using REACT_APP_ENV:', process.env.REACT_APP_ENV);
-    return process.env.REACT_APP_ENV;
+  if (import.meta.env.VITE_APP_ENV) {
+    console.log('[Env] Using VITE_APP_ENV:', import.meta.env.VITE_APP_ENV);
+    return import.meta.env.VITE_APP_ENV as string;
   }
   
-  if (import.meta.env?.DEV) {
+  if (import.meta.env.DEV) {
     console.log('[Env] Using Vite DEV mode (development)');
     return 'development';
   }
   
-  if (process.env.NODE_ENV) {
-    console.log('[Env] Using NODE_ENV:', process.env.NODE_ENV);
-    return process.env.NODE_ENV;
+  if (import.meta.env.MODE) {
+    console.log('[Env] Using MODE:', import.meta.env.MODE);
+    return import.meta.env.MODE;
   }
   
   // Default to development if we can't determine

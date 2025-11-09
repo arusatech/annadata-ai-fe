@@ -22,7 +22,10 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    exclude: ['@sqlite.org/sqlite-wasm']
+    exclude: ['@sqlite.org/sqlite-wasm', 'mupdf'],
+    esbuildOptions: {
+      target: 'es2022'
+    }
   },
   worker: {
     format: 'es'

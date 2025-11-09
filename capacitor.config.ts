@@ -8,6 +8,21 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: true
     },
+    CapacitorSQLite: {
+      iosDatabaseLocation: 'Library/CapacitorDatabase',
+      iosIsEncryption: false,
+      iosKeychainPrefix: 'annadata',
+      iosBiometric: {
+        biometricAuth: false,
+        biometricTitle : "Biometric login for capacitor sqlite"
+      },
+      androidIsEncryption: false,
+      androidBiometric: {
+        biometricAuth : false,
+        biometricTitle : "Biometric login for capacitor sqlite",
+        biometricSubTitle : "Log in using your biometric"
+      }
+    },
     SplashScreen: {
       launchShowDuration: 0,
       launchFadeOutDuration: 0,
